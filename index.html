@@ -24,7 +24,8 @@
             borderDark: '#252833',
             brandGreen: '#22c55e',
             brandBlue: '#3b82f6',
-            brandAmber: '#f59e0b'
+            brandAmber: '#f59e0b',
+            brandRed: '#ef4444'
           }
         }
       }
@@ -61,7 +62,7 @@
     }
 
     .modal-sheet {
-      transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.28s ease;
+      transition: transform 0.26s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.26s ease;
     }
     .modal-sheet.closed {
       transform: translateY(100%);
@@ -74,7 +75,7 @@
 
     .tap-press:active {
       transform: scale(0.96);
-      transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: transform 0.08s cubic-bezier(0.4, 0, 0.2, 1);
     }
   </style>
 </head>
@@ -96,7 +97,7 @@
         </div>
       </div>
       
-      <button onclick="openModal('fuel')" class="w-10 h-10 rounded-2xl bg-brandGreen text-black font-black flex items-center justify-center text-2xl tap-press transition shadow-lg shadow-brandGreen/25">
+      <button onclick="openCreateModal('fuel')" class="w-10 h-10 rounded-2xl bg-brandGreen text-black font-black flex items-center justify-center text-2xl tap-press transition shadow-lg shadow-brandGreen/25">
         +
       </button>
     </div>
@@ -128,7 +129,7 @@
           </div>
         </div>
 
-        <!-- Period Filter -->
+        <!-- Period Filter Control -->
         <div class="mt-4 pt-3 border-t border-borderDark/60">
           <div class="flex items-center justify-between mb-2">
             <span class="text-[11px] font-semibold text-gray-400">Період розрахунку:</span>
@@ -218,13 +219,13 @@
         </div>
       </div>
 
-      <!-- 3. QUICK ACTION BUTTONS -->
+      <!-- 3. ACTION BUTTONS -->
       <div class="grid grid-cols-4 gap-2">
-        <button onclick="openModal('fuel')" class="p-3 rounded-2xl bg-cardDark border border-borderDark text-center tap-press">
+        <button onclick="openCreateModal('fuel')" class="p-3 rounded-2xl bg-cardDark border border-borderDark text-center tap-press">
           <div class="text-xl mb-1">⛽</div>
           <span class="text-xs text-gray-200 font-medium">Заправка</span>
         </button>
-        <button onclick="openModal('service')" class="p-3 rounded-2xl bg-cardDark border border-borderDark text-center tap-press">
+        <button onclick="openCreateModal('service')" class="p-3 rounded-2xl bg-cardDark border border-borderDark text-center tap-press">
           <div class="text-xl mb-1">🔧</div>
           <span class="text-xs text-gray-200 font-medium">Сервіс</span>
         </button>
@@ -263,7 +264,7 @@
       <!-- 5. RECENT LOGS PREVIEW -->
       <div class="space-y-2">
         <div class="flex justify-between items-center px-1">
-          <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Останні заправки</span>
+          <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Останні операції (тапніть для ред.)</span>
           <button onclick="switchTab('tabHistory')" class="text-xs text-brandGreen font-semibold">Вся історія →</button>
         </div>
         <div id="previewList" class="space-y-2"></div>
@@ -271,10 +272,13 @@
 
     </section>
 
-    <!-- TAB 2: HISTORY (FULL LIST) -->
+    <!-- TAB 2: HISTORY (FULL LIST WITH TAP TO EDIT/DELETE) -->
     <section id="tabHistory" class="tab-content space-y-3 hidden">
       <div class="flex items-center justify-between">
-        <h2 class="text-base font-extrabold text-white">Історія записів</h2>
+        <div>
+          <h2 class="text-base font-extrabold text-white">Історія записів</h2>
+          <p class="text-[11px] text-gray-400">Натисніть на будь-який рядок для редагування</p>
+        </div>
         <div class="flex space-x-1 bg-cardSubDark p-1 rounded-xl border border-borderDark">
           <button onclick="filterRecords('all')" id="fltAll" class="px-2.5 py-1 text-xs rounded-lg bg-brandGreen text-black font-bold">Всі</button>
           <button onclick="filterRecords('LPG')" id="fltLpg" class="px-2.5 py-1 text-xs rounded-lg text-gray-400">Газ</button>
@@ -336,7 +340,7 @@
           <h2 class="text-base font-extrabold text-white">Регламентні ТО</h2>
           <p class="text-xs text-gray-400 font-mono">Skoda Fabia 1.4 (Бензин + LPG)</p>
         </div>
-        <button onclick="openModal('service')" class="px-3 py-1.5 bg-brandGreen/15 border border-brandGreen/40 text-brandGreen text-xs rounded-xl font-bold tap-press">+ Додати ТО</button>
+        <button onclick="openCreateModal('service')" class="px-3 py-1.5 bg-brandGreen/15 border border-brandGreen/40 text-brandGreen text-xs rounded-xl font-bold tap-press">+ Додати ТО</button>
       </div>
       <div id="serviceList" class="space-y-2.5"></div>
     </section>
@@ -365,7 +369,7 @@
     </div>
   </nav>
 
-  <!-- MODAL BOTTOM SHEET -->
+  <!-- MODAL BOTTOM SHEET (CREATE & EDIT & DELETE) -->
   <div id="modalOverlay" onclick="closeModal()" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm transition-opacity duration-200 hidden opacity-0"></div>
 
   <div id="modalSheet" class="fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto modal-sheet closed">
@@ -374,13 +378,13 @@
       <div class="flex justify-between items-center border-b border-borderDark/60 pb-3">
         <div class="flex items-center space-x-2">
           <h3 id="modalHeading" class="text-base font-extrabold text-white">Нова заправка</h3>
-          <span class="text-xs text-gray-400 font-mono">Fabia 1.4</span>
+          <span id="modalSub" class="text-xs text-gray-400 font-mono">Fabia 1.4</span>
         </div>
         <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-cardSubDark text-gray-300 flex items-center justify-center font-bold tap-press">✕</button>
       </div>
 
-      <!-- Toggle Fuel / Service -->
-      <div class="grid grid-cols-2 gap-2 bg-cardSubDark p-1 rounded-2xl border border-borderDark">
+      <!-- Toggle Fuel / Service (Only visible on Create mode) -->
+      <div id="typeToggleWrap" class="grid grid-cols-2 gap-2 bg-cardSubDark p-1 rounded-2xl border border-borderDark">
         <button id="modalBtnFuel" onclick="selectModalCategory('fuel')" class="py-2 text-xs font-bold rounded-xl bg-brandGreen text-black transition">
           ⛽ Заправка
         </button>
@@ -390,7 +394,7 @@
       </div>
 
       <!-- FUEL FORM -->
-      <form id="formFuel" onsubmit="saveFuel(event)" class="space-y-3.5">
+      <form id="formFuel" onsubmit="handleFuelSubmit(event)" class="space-y-3.5">
         <div>
           <label class="text-[11px] text-gray-400 block mb-1.5 uppercase tracking-wider font-semibold">Вид палива</label>
           <div class="grid grid-cols-2 gap-2">
@@ -439,13 +443,19 @@
           <input type="text" id="inpNotes" placeholder="WOG, ОККО, прогрів..." class="w-full bg-cardSubDark border border-borderDark rounded-2xl px-3.5 py-2.5 text-xs text-white focus:border-brandGreen focus:outline-none">
         </div>
 
-        <button type="submit" class="w-full py-3.5 bg-brandGreen text-black font-black rounded-2xl text-sm shadow-lg shadow-brandGreen/25 tap-press">
-          Зберегти заправку
-        </button>
+        <!-- Buttons for Save & Delete -->
+        <div class="space-y-2 pt-1">
+          <button type="submit" id="btnSubmitFuel" class="w-full py-3.5 bg-brandGreen text-black font-black rounded-2xl text-sm shadow-lg shadow-brandGreen/25 tap-press">
+            Зберегти заправку
+          </button>
+          <button type="button" id="btnDeleteFuel" onclick="handleDeleteCurrentRecord()" class="w-full py-3 bg-rose-500/15 border border-rose-500/40 text-rose-400 font-bold rounded-2xl text-xs tap-press hidden">
+            🗑️ Видалити цей запис
+          </button>
+        </div>
       </form>
 
       <!-- SERVICE FORM -->
-      <form id="formService" onsubmit="saveService(event)" class="space-y-3.5 hidden">
+      <form id="formService" onsubmit="handleServiceSubmit(event)" class="space-y-3.5 hidden">
         <div>
           <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">Вузол</label>
           <select id="sNode" class="w-full bg-cardSubDark border border-borderDark rounded-2xl px-3.5 py-2.5 text-xs text-white">
@@ -470,9 +480,15 @@
             <input type="number" id="sCost" required placeholder="350" class="w-full bg-cardSubDark border border-borderDark rounded-2xl px-3.5 py-2.5 text-xs text-white font-mono">
           </div>
         </div>
-        <button type="submit" class="w-full py-3.5 bg-blue-500 text-white font-black rounded-2xl text-sm shadow-lg shadow-blue-500/25 tap-press">
-          Зберегти ТО
-        </button>
+        
+        <div class="space-y-2 pt-1">
+          <button type="submit" id="btnSubmitService" class="w-full py-3.5 bg-blue-500 text-white font-black rounded-2xl text-sm shadow-lg shadow-blue-500/25 tap-press">
+            Зберегти ТО
+          </button>
+          <button type="button" id="btnDeleteService" onclick="handleDeleteCurrentRecord()" class="w-full py-3 bg-rose-500/15 border border-rose-500/40 text-rose-400 font-bold rounded-2xl text-xs tap-press hidden">
+            🗑️ Видалити цей запис
+          </button>
+        </div>
       </form>
 
     </div>
@@ -498,14 +514,37 @@
       { name: "Ремінь ГРМ і помпа", oem: "Gates KP15565XS-1", interval: 60000, last: 250500, node: "Двигун" }
     ];
 
-    let records = JSON.parse(localStorage.getItem("fabia_records_v3")) || DEFAULT_RECORDS;
-    let services = JSON.parse(localStorage.getItem("fabia_services_v3")) || DEFAULT_SERVICES;
+    let records = JSON.parse(localStorage.getItem("fabia_records_v4")) || DEFAULT_RECORDS;
+    let services = JSON.parse(localStorage.getItem("fabia_services_v4")) || DEFAULT_SERVICES;
     let periodFilter = '1k';
     let currentModalFuel = 'LPG';
+    let editingRecordId = null;
 
     function saveState() {
-      localStorage.setItem("fabia_records_v3", JSON.stringify(records));
-      localStorage.setItem("fabia_services_v3", JSON.stringify(services));
+      records.sort((a, b) => a.odo - b.odo);
+
+      let prevLpg = null;
+      let prevPetrol = null;
+      records.forEach(r => {
+        if (r.type === 'fuel') {
+          if (r.fuel === 'LPG') {
+            if (prevLpg && r.odo > prevLpg.odo && r.full) {
+              const delta = r.odo - prevLpg.odo;
+              r.cons = parseFloat(((r.liters / delta) * 100).toFixed(2));
+            }
+            prevLpg = r;
+          } else if (r.fuel === 'Petrol') {
+            if (prevPetrol && r.odo > prevPetrol.odo && r.full) {
+              const delta = r.odo - prevPetrol.odo;
+              r.cons = parseFloat(((r.liters / delta) * 100).toFixed(2));
+            }
+            prevPetrol = r;
+          }
+        }
+      });
+
+      localStorage.setItem("fabia_records_v4", JSON.stringify(records));
+      localStorage.setItem("fabia_services_v4", JSON.stringify(services));
       render();
     }
 
@@ -615,7 +654,7 @@
       let badge = isLpg ? `${r.liters} л` : (isPetrol ? `${r.liters} л` : r.oem);
 
       return `
-        <div class="bg-cardDark border border-borderDark rounded-2xl p-3.5 flex justify-between items-center tap-press transition">
+        <div onclick="openEditModal(${r.id})" class="bg-cardDark border border-borderDark rounded-2xl p-3.5 flex justify-between items-center tap-press transition active:border-brandGreen/60 cursor-pointer">
           <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-xl bg-cardSubDark border border-borderDark flex items-center justify-center text-lg">
               ${icon}
@@ -630,7 +669,7 @@
           </div>
           <div class="text-right">
             <div class="text-sm font-black text-white font-mono">₴ ${r.cost.toLocaleString('uk-UA')}</div>
-            ${r.cons ? `<div class="text-[11px] font-bold text-brandGreen font-mono">${r.cons} л/100км</div>` : ''}
+            ${r.cons ? `<div class="text-[11px] font-bold text-brandGreen font-mono">${r.cons} л/100км</div>` : '<span class="text-[10px] text-gray-400">ред. ✏️</span>'}
           </div>
         </div>
       `;
@@ -708,20 +747,68 @@
       if (id === 'tabReports') initCharts();
     }
 
-    function openModal(cat) {
+    // MODAL HANDLERS: CREATE VS EDIT
+    function openCreateModal(cat) {
+      editingRecordId = null;
+      document.getElementById('modalHeading').innerText = cat === 'fuel' ? "Нова заправка" : "Новий запис ТО";
+      document.getElementById('modalSub').innerText = "Fabia 1.4";
+      document.getElementById('typeToggleWrap').classList.remove('hidden');
+      document.getElementById('btnSubmitFuel').innerText = "Зберегти заправку";
+      document.getElementById('btnDeleteFuel').classList.add('hidden');
+      document.getElementById('btnSubmitService').innerText = "Зберегти ТО";
+      document.getElementById('btnDeleteService').classList.add('hidden');
+
+      const last = records[records.length - 1];
+      document.getElementById('inpOdo').value = last ? last.odo : 284510;
+      document.getElementById('inpLit').value = "";
+      document.getElementById('inpSum').value = "";
+      document.getElementById('inpNotes').value = "";
+
+      showModalSheet();
+      selectModalCategory(cat);
+    }
+
+    function openEditModal(recordId) {
+      const rec = records.find(r => r.id === recordId);
+      if (!rec) return;
+
+      editingRecordId = recordId;
+      document.getElementById('modalHeading').innerText = "Редагувати запис";
+      document.getElementById('modalSub').innerText = `${rec.date} • #${rec.id}`;
+      document.getElementById('typeToggleWrap').classList.add('hidden');
+
+      if (rec.type === 'fuel') {
+        selectModalCategory('fuel');
+        setModalFuel(rec.fuel);
+        document.getElementById('inpOdo').value = rec.odo;
+        document.getElementById('inpLit').value = rec.liters;
+        document.getElementById('inpSum').value = rec.cost;
+        document.getElementById('inpFull').checked = rec.full !== false;
+        document.getElementById('inpNotes').value = rec.notes || "";
+        document.getElementById('btnSubmitFuel').innerText = "Оновити заправку";
+        document.getElementById('btnDeleteFuel').classList.remove('hidden');
+      } else {
+        selectModalCategory('service');
+        document.getElementById('sName').value = rec.name;
+        document.getElementById('sNode').value = rec.node || "Двигун";
+        document.getElementById('sOem').value = rec.oem || "";
+        document.getElementById('sCost').value = rec.cost;
+        document.getElementById('btnSubmitService').innerText = "Оновити ТО";
+        document.getElementById('btnDeleteService').classList.remove('hidden');
+      }
+
+      showModalSheet();
+    }
+
+    function showModalSheet() {
       const overlay = document.getElementById('modalOverlay');
       const sheet = document.getElementById('modalSheet');
       overlay.classList.remove('hidden');
       void overlay.offsetWidth;
       overlay.classList.remove('opacity-0');
       overlay.classList.add('opacity-100');
-
       sheet.classList.remove('closed');
       sheet.classList.add('open');
-
-      const last = records[records.length - 1];
-      document.getElementById('inpOdo').value = last ? last.odo : 284510;
-      selectModalCategory(cat);
     }
 
     function closeModal() {
@@ -733,7 +820,7 @@
       sheet.classList.add('closed');
       setTimeout(() => {
         overlay.classList.add('hidden');
-      }, 250);
+      }, 240);
     }
 
     function selectModalCategory(c) {
@@ -742,13 +829,11 @@
         document.getElementById('modalBtnService').className = "py-2 text-xs font-bold rounded-xl text-gray-400 hover:text-white transition";
         document.getElementById('formFuel').classList.remove('hidden');
         document.getElementById('formService').classList.add('hidden');
-        document.getElementById('modalHeading').innerText = "Нова заправка";
       } else {
         document.getElementById('modalBtnFuel').className = "py-2 text-xs font-bold rounded-xl text-gray-400 hover:text-white transition";
         document.getElementById('modalBtnService').className = "py-2 text-xs font-bold rounded-xl bg-blue-500 text-white transition";
         document.getElementById('formFuel').classList.add('hidden');
         document.getElementById('formService').classList.remove('hidden');
-        document.getElementById('modalHeading').innerText = "Новий запис ТО";
       }
     }
 
@@ -763,7 +848,7 @@
       }
     }
 
-    function saveFuel(e) {
+    function handleFuelSubmit(e) {
       e.preventDefault();
       const odo = parseInt(document.getElementById('inpOdo').value);
       const lit = parseFloat(document.getElementById('inpLit').value);
@@ -771,32 +856,38 @@
       const curr = document.getElementById('inpCurr').value;
       const full = document.getElementById('inpFull').checked;
       const notes = document.getElementById('inpNotes').value;
+      const costUAH = curr === 'EUR' ? sum * 53 : sum;
 
-      const prev = [...records].reverse().find(r => r.fuel === currentModalFuel);
-      let cons = null;
-      if (prev && odo > prev.odo && full) {
-        const d = odo - prev.odo;
-        cons = parseFloat(((lit / d) * 100).toFixed(2));
+      if (editingRecordId) {
+        const idx = records.findIndex(r => r.id === editingRecordId);
+        if (idx !== -1) {
+          records[idx].odo = odo;
+          records[idx].liters = lit;
+          records[idx].cost = costUAH;
+          records[idx].fuel = currentModalFuel;
+          records[idx].full = full;
+          records[idx].notes = notes;
+        }
+      } else {
+        records.push({
+          id: Date.now(),
+          date: new Date().toISOString().slice(0, 16).replace('T', ' '),
+          type: 'fuel',
+          fuel: currentModalFuel,
+          liters: lit,
+          cost: costUAH,
+          odo: odo,
+          full: full,
+          cons: null,
+          notes: notes
+        });
       }
-
-      records.push({
-        id: Date.now(),
-        date: new Date().toISOString().slice(0, 16).replace('T', ' '),
-        type: 'fuel',
-        fuel: currentModalFuel,
-        liters: lit,
-        cost: curr === 'EUR' ? sum * 53 : sum,
-        odo: odo,
-        full: full,
-        cons: cons,
-        notes: notes
-      });
 
       saveState();
       closeModal();
     }
 
-    function saveService(e) {
+    function handleServiceSubmit(e) {
       e.preventDefault();
       const name = document.getElementById('sName').value;
       const node = document.getElementById('sNode').value;
@@ -804,19 +895,38 @@
       const cost = parseFloat(document.getElementById('sCost').value);
       const latestOdo = records.length > 0 ? records[records.length - 1].odo : 284510;
 
-      records.push({
-        id: Date.now(),
-        date: new Date().toISOString().slice(0, 16).replace('T', ' '),
-        type: 'service',
-        name: name,
-        node: node,
-        oem: oem || "—",
-        cost: cost,
-        odo: latestOdo
-      });
+      if (editingRecordId) {
+        const idx = records.findIndex(r => r.id === editingRecordId);
+        if (idx !== -1) {
+          records[idx].name = name;
+          records[idx].node = node;
+          records[idx].oem = oem || "—";
+          records[idx].cost = cost;
+        }
+      } else {
+        records.push({
+          id: Date.now(),
+          date: new Date().toISOString().slice(0, 16).replace('T', ' '),
+          type: 'service',
+          name: name,
+          node: node,
+          oem: oem || "—",
+          cost: cost,
+          odo: latestOdo
+        });
+      }
 
       saveState();
       closeModal();
+    }
+
+    function handleDeleteCurrentRecord() {
+      if (!editingRecordId) return;
+      if (confirm("Точно видалити цей запис? Витрата перерахується автоматично.")) {
+        records = records.filter(r => r.id !== editingRecordId);
+        saveState();
+        closeModal();
+      }
     }
 
     let chartsInit = false;
@@ -832,6 +942,14 @@
         type: 'line',
         data: { labels: ['27 сер', '27 сер (ніч)', '28 сер', '28 сер', '29 сер', '29 сер', '2 вер'], datasets: [{ data: [7.3, 7.2, 8.1, 8.3, 8.4, 8.5, 8.47], borderColor: '#22c55e', tension: 0.35 }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+    }
+
+    window.onload = render;
+  </script>
+</body>
+</html>
+ } } }
       });
     }
 
