@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="uk" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Skoda Fabia — Бортовий журнал</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a0a0c">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            bgDark: '#0a0a0c',
+            cardDark: '#14151a',
+            cardSubDark: '#1c1e26',
+            borderDark: '#262934',
+            brandGreen: '#22c55e',
+            brandBlue: '#3b82f6',
+            brandOrange: '#f97316'
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      background-color: #0a0a0c;
+      color: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      padding-bottom: env(safe-area-inset-bottom, 24px);
+    }
+    .safe-top { padding-top: env(safe-area-inset-top, 16px); }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-bgDark text-gray-100 flex flex-col min-h-screen select-none">
+
+  <!-- TOP HEADER -->
+  <header class="sticky top-0 z-30 bg-bgDark/95 backdrop-blur-md border-b border-borderDark px-4 py-3 safe-top">
+    <div class="flex items-center justify-between max-w-md mx-auto">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-full bg-cardSubDark flex items-center justify-center border border-borderDark text-brandGreen font-bold text-lg">
+          ⛽
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-base font-bold tracking-tight">Skoda Fabia II</h1>
+            <span class="text-[10px] bg-brandGreen/20 text-brandGreen px-1.5 py-0.5 rounded font-mono font-semibold">1.4 Бензин + LPG</span>
+          </div>
+          <p class="text-xs text-gray-400 font-mono">BC 1426 MP • 2014 р.</p>
+        </div>
+      </div>
+      
+      <button onclick="openModal('fuel')" class="w-9 h-9 rounded-full bg-brandGreen text-black font-extrabold flex items-center justify-center text-xl active:scale-90 transition shadow-lg shadow-brandGreen/25">
+        +
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN VIEW -->
+  <main class="flex-1 max-w-md mx-auto w-full px-4 pt-3 pb-24 space-y-4">
+
+    <!-- TAB 1: GARAGE -->
+    <section id="tabGarage" class="space-y-4">
+
+      <!-- HERO ODOMETER CARD -->
+      <div class="bg-gradient-to-br from-cardDark via-cardDark to-[#12141a] border border-borderDark rounded-2xl p-4 shadow-xl relative overflow-hidden">
+        <div class="flex justify-between items-start">
+          <div>
+            <span class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">
+              ⏱️ Поточний пробіг авто
+            </span>
+            <div class="flex items-baseline space-x-2 mt-1">
+              <h2 id="heroOdometer" class="text-3xl font-black tracking-tight text-white font-mono">284 510</h2>
+              <span class="text-base font-bold text-gray-400">км</span>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] bg-cardSubDark border border-borderDark text-gray-300 px-2 py-1 rounded-lg font-mono">
+              Оновлено щойно
+            </span>
+            <p id="heroDrivenWithMe" class="text-[11px] text-gray-400 mt-1.5 font-medium">+34 010 км з вами</p>
+          </div>
+        </div>
+
+        <!-- Period Filter Segmented Control -->
+        <div class="mt-4 pt-3 border-t border-borderDark/70">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[11px] font-semibold text-gray-300">Фільтр статистики:</span>
+            <span id="periodBadge" class="text-[10px] text-brandGreen font-medium font-mono">Останні 1 000 км</span>
+          </div>
+          <div class="grid grid-cols-3 gap-1 bg-cardSubDark p-1 rounded-xl border border-borderDark text-center">
+            <button onclick="setPeriodFilter('1k')" id="btnFilter1k" class="py-1.5 text-xs font-semibold rounded-lg bg-brandGreen text-black transition">
+              1 000 км
+            </button>
+            <button onclick="setPeriodFilter('month')" id="btnFilterMonth" class="py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition">
+              30 днів
+            </button>
+            <button onclick="setPeriodFilter('all')" id="btnFilterAll" class="py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition">
+              Весь час
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- BI-FUEL & MIXED CONSUMPTION SUMMARY -->
+      <div class="bg-cardDark border border-borderDark rounded-2xl p-4 space-y-3.5 shadow-lg">
+        <div class="flex items-center justify-between border-b border-borderDark/60 pb-2.5">
+          <div class="flex items-center space-x-1.5">
+            <span class="text-sm font-bold text-white tracking-wide">Витрата та вартість</span>
+            <span class="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/30 px-1.5 py-0.2 rounded font-medium">Двопаливна система</span>
+          </div>
+          <span id="periodDistanceLabel" class="text-xs font-mono text-gray-400">1 000 км</span>
+        </div>
+
+        <!-- Big Metric Cards -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-cardSubDark/80 border border-borderDark/80 rounded-xl p-3">
+            <span class="text-[11px] text-gray-400 block font-medium">Сума за період</span>
+            <div class="flex items-baseline space-x-1 mt-0.5">
+              <span id="statPeriodSum" class="text-xl font-extrabold text-white font-mono">₴ 4 380</span>
+            </div>
+            <div class="text-[10px] text-gray-400 mt-1 flex justify-between font-mono">
+              <span id="statSubGas">Газ: ₴3 630</span>
+              <span id="statSubPetrol">Бенз: ₴750</span>
+            </div>
+          </div>
+
+          <div class="bg-cardSubDark/80 border border-borderDark/80 rounded-xl p-3">
+            <span class="text-[11px] text-gray-400 block font-medium">Змішана ціна 1 км</span>
+            <div class="flex items-baseline space-x-1 mt-0.5">
+              <span id="statCostPerKm" class="text-xl font-extrabold text-brandGreen font-mono">₴ 3.99</span>
+              <span class="text-xs text-gray-400">/ км</span>
+            </div>
+            <span class="text-[10px] text-gray-400 mt-1 block">з урахуванням бензину</span>
+          </div>
+        </div>
+
+        <!-- Fuel Breakdown Meters -->
+        <div class="space-y-2.5 pt-1">
+          <!-- Gas Consumption -->
+          <div class="bg-cardSubDark/50 p-2.5 rounded-xl border border-borderDark/40">
+            <div class="flex justify-between items-center text-xs">
+              <span class="flex items-center space-x-1.5 font-medium text-gray-300">
+                <span class="w-2 h-2 rounded-full bg-brandGreen"></span>
+                <span>Газ (LPG) — основний рух</span>
+              </span>
+              <span id="statGasConsumption" class="font-bold text-brandGreen font-mono text-sm">8.2 л / 100км</span>
+            </div>
+            <div class="flex justify-between items-center text-[10px] text-gray-400 mt-1 font-mono">
+              <span id="statGasVolume">Об'єм: 90.0 л</span>
+              <span id="statGasPriceAvg">Сер. ціна: ₴40.3/л</span>
+            </div>
+          </div>
+
+          <!-- Petrol Consumption (Warm-up) -->
+          <div class="bg-cardSubDark/50 p-2.5 rounded-xl border border-borderDark/40">
+            <div class="flex justify-between items-center text-xs">
+              <span class="flex items-center space-x-1.5 font-medium text-gray-300">
+                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span>Бензин А-95 — прогріви та старти</span>
+              </span>
+              <span id="statPetrolConsumption" class="font-bold text-amber-400 font-mono text-sm">1.1 л / 100км</span>
+            </div>
+            <div class="flex justify-between items-center text-[10px] text-gray-400 mt-1 font-mono">
+              <span id="statPetrolVolume">Об'єм: 12.5 л</span>
+              <span id="statPetrolPriceAvg">Сер. ціна: ₴59.0/л</span>
+            </div>
+          </div>
+
+          <!-- Mixed Equivalent -->
+          <div class="p-2 rounded-lg bg-black/40 border border-borderDark/60 flex items-center justify-between text-xs font-medium">
+            <span class="text-gray-300">Разом собівартість на 100 км:</span>
+            <span id="statCombined100km" class="font-mono font-bold text-white text-sm">₴ 399 / 100км</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="grid grid-cols-4 gap-2">
+        <button onclick="openModal('fuel')" class="p-3 rounded-xl bg-cardDark border border-borderDark text-center active:bg-cardSubDark transition">
+          <div class="text-lg mb-1">⛽</div>
+          <span class="text-xs text-gray-300">Заправка</span>
+        </button>
+        <button onclick="openModal('service')" class="p-3 rounded-xl bg-cardDark border border-borderDark text-center active:bg-cardSubDark transition">
+          <div class="text-lg mb-1">🔧</div>
+          <span class="text-xs text-gray-300">Сервіс</span>
+        </button>
+        <button onclick="switchTab('tabService')" class="p-3 rounded-xl bg-cardDark border border-borderDark text-center active:bg-cardSubDark transition">
+          <div class="text-lg mb-1">📋</div>
+          <span class="text-xs text-gray-300">План ТО</span>
+        </button>
+        <button onclick="switchTab('tabReports')" class="p-3 rounded-xl bg-cardDark border border-borderDark text-center active:bg-cardSubDark transition">
+          <div class="text-lg mb-1">📊</div>
+          <span class="text-xs text-gray-300">Звіт</span>
+        </button>
+      </div>
+
+      <!-- MAINTENANCE REMINDER QUICK GLANCE -->
+      <div class="bg-cardDark border border-borderDark rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Найближчі заміни розхідників</h3>
+          <button onclick="switchTab('tabService')" class="text-xs text-brandGreen hover:underline font-medium">Усі →</button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="bg-cardSubDark p-3 rounded-xl border border-borderDark/60">
+            <span class="text-[11px] text-gray-400 block">Олива двигуна</span>
+            <span id="quickOilKm" class="text-base font-bold text-amber-400 font-mono mt-0.5 block">5 490 км</span>
+            <span class="text-[10px] text-gray-400 block font-mono">W712/94 (Mann)</span>
+          </div>
+
+          <div class="bg-cardSubDark p-3 rounded-xl border border-borderDark/60">
+            <span class="text-[11px] text-gray-400 block">Фільтри ГБО (паровий/рідкий)</span>
+            <span id="quickLpgKm" class="text-base font-bold text-brandGreen font-mono mt-0.5 block">5 490 км</span>
+            <span class="text-[10px] text-gray-400 block font-mono">KN-279 / Tomasetto</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RECENT ENTRIES LIST -->
+      <div class="space-y-2">
+        <div class="flex justify-between items-center px-1">
+          <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Останні операції</span>
+          <button onclick="switchTab('tabHistory')" class="text-xs text-brandGreen font-medium">Історія →</button>
+        </div>
+        <div id="previewList" class="space-y-2"></div>
+      </div>
+
+    </section>
+
+    <!-- TAB 2: HISTORY -->
+    <section id="tabHistory" class="space-y-3 hidden">
+      <div class="flex items-center justify-between">
+        <h2 class="text-base font-bold">Історія записів</h2>
+        <div class="flex space-x-1 bg-cardSubDark p-1 rounded-lg border border-borderDark">
+          <button onclick="filterRecords('all')" id="fltAll" class="px-2.5 py-1 text-xs rounded bg-brandGreen text-black font-semibold">Всі</button>
+          <button onclick="filterRecords('LPG')" id="fltLpg" class="px-2.5 py-1 text-xs rounded text-gray-400">Газ</button>
+          <button onclick="filterRecords('Petrol')" id="fltPetrol" class="px-2.5 py-1 text-xs rounded text-gray-400">Бензин</button>
+          <button onclick="filterRecords('service')" id="fltServ" class="px-2.5 py-1 text-xs rounded text-gray-400">Сервіс</button>
+        </div>
+      </div>
+      <div id="fullList" class="space-y-2"></div>
+    </section>
+
+    <!-- TAB 3: REPORTS & CHARTS -->
+    <section id="tabReports" class="space-y-4 hidden">
+      <div class="bg-cardDark border border-borderDark rounded-2xl p-4 space-y-2">
+        <div class="flex justify-between items-center">
+          <h3 class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Витрати за місяцями (грн)</h3>
+          <span class="text-[11px] text-gray-400 font-mono">2026</span>
+        </div>
+        <div class="h-44"><canvas id="barChart"></canvas></div>
+      </div>
+
+      <div class="bg-cardDark border border-borderDark rounded-2xl p-4 space-y-2">
+        <div class="flex justify-between items-center">
+          <h3 class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Динаміка витрати газу (л/100км)</h3>
+          <span class="text-[11px] text-brandGreen font-mono">останні заправки</span>
+        </div>
+        <div class="h-44"><canvas id="lineChart"></canvas></div>
+      </div>
+    </section>
+
+    <!-- TAB 4: SERVICE -->
+    <section id="tabService" class="space-y-3 hidden">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-base font-bold">Регламентні ТО та розхідники</h2>
+          <p class="text-xs text-gray-400">Skoda Fabia 1.4 (LPG)</p>
+        </div>
+        <button onclick="openModal('service')" class="px-2.5 py-1.5 bg-brandGreen/20 border border-brandGreen text-brandGreen text-xs rounded-xl font-bold">+ Додати</button>
+      </div>
+      <div id="serviceList" class="space-y-2.5"></div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM NAVIGATION -->
+  <nav class="fixed bottom-0 left-0 right-0 z-30 bg-bgDark/95 backdrop-blur-md border-t border-borderDark py-2 safe-bottom">
+    <div class="max-w-md mx-auto grid grid-cols-4 text-center">
+      <button onclick="switchTab('tabGarage')" id="btn-tabGarage" class="py-1 text-brandGreen text-xs flex flex-col items-center">
+        <span class="text-base">🚗</span>
+        <span class="text-[10px] mt-0.5 font-medium">Гараж</span>
+      </button>
+      <button onclick="switchTab('tabHistory')" id="btn-tabHistory" class="py-1 text-gray-400 text-xs flex flex-col items-center">
+        <span class="text-base">📋</span>
+        <span class="text-[10px] mt-0.5 font-medium">Історія</span>
+      </button>
+      <button onclick="switchTab('tabReports')" id="btn-tabReports" class="py-1 text-gray-400 text-xs flex flex-col items-center">
+        <span class="text-base">📊</span>
+        <span class="text-[10px] mt-0.5 font-medium">Звіт</span>
+      </button>
+      <button onclick="switchTab('tabService')" id="btn-tabService" class="py-1 text-gray-400 text-xs flex flex-col items-center">
+        <span class="text-base">🛠️</span>
+        <span class="text-[10px] mt-0.5 font-medium">Сервіс</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- MODAL: ADD ENTRY -->
+  <div id="modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 hidden">
+    <div class="bg-cardDark border border-borderDark rounded-t-3xl sm:rounded-2xl p-5 max-w-md w-full space-y-4 max-h-[90vh] overflow-y-auto hide-scrollbar">
+      
+      <div class="flex justify-between items-center border-b border-borderDark/60 pb-3">
+        <h3 id="modalHeading" class="text-base font-bold text-white">Новий запис</h3>
+        <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-cardSubDark text-gray-300 flex items-center justify-center font-bold">✕</button>
+      </div>
+
+      <!-- Toggle Fuel / Service -->
+      <div class="grid grid-cols-2 gap-2 bg-cardSubDark p-1 rounded-xl border border-borderDark">
+        <button id="modalBtnFuel" onclick="selectModalCategory('fuel')" class="py-2 text-xs font-semibold rounded-lg bg-brandGreen text-black transition">
+          ⛽ Заправка
+        </button>
+        <button id="modalBtnService" onclick="selectModalCategory('service')" class="py-2 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition">
+          🔧 Сервіс / ТО
+        </button>
+      </div>
+
+      <!-- FORM FUEL -->
+      <form id="formFuel" onsubmit="saveFuel(event)" class="space-y-3">
+        <div>
+          <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">Вид палива</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="setModalFuel('LPG')" id="mFuelLpg" class="py-2 text-xs font-bold rounded-lg bg-brandGreen/20 border border-brandGreen text-brandGreen">
+              Газ (LPG)
+            </button>
+            <button type="button" onclick="setModalFuel('Petrol')" id="mFuelPetrol" class="py-2 text-xs font-bold rounded-lg bg-cardSubDark border border-borderDark text-gray-400">
+              Бензин А-95 (прогрів)
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">Поточний одометр (км)</label>
+          <input type="number" id="inpOdo" required class="w-full bg-cardSubDark border border-borderDark rounded-xl px-3 py-2.5 text-white font-mono text-base focus:border-brandGreen focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">Об'єм (л)</label>
+            <input type="number" id="inpLit" step="0.01" required class="w-full bg-cardSubDark border border-borderDark rounded-xl px-3 py-2.5 text-white font-mono text-base focus:border-brandGreen focus:outline-none" placeholder="25.0">
+          </div>
+          <div>
+            <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">Сума (грн)</label>
+            <input type="number" id="inpSum" step="1" required class="w-full bg-cardSubDark border border-borderDark rounded-xl px-3 py-2.5 text-white font-mono text-base focus:border-brandGreen focus:outline-none" placeholder="1000">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between py-1">
+          <label class="flex items-center space-x-2 cursor-pointer">
+            <input type="checkbox" id="inpFull" checked class="w-4 h-4 rounded text-brandGreen accent-brandGreen">
+            <span class="text-xs text-gray-300 font-medium">Повний бак</span>
+          </label>
+          <div class="flex items-center space-x-1.5 text-xs text-gray-400">
+            <span>Валюта:</span>
+            <select id="inpCurr" class="bg-cardSubDark text-white border border-borderDark rounded-lg px-2 py-1">
+              <option value="UAH">UAH ₴</option>
+              <option value="EUR">EUR €</option>
+              <option value="USD">USD $</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">Нотатки / АЗС</label>
+          <input type="text" id="inpNotes" placeholder="WOG, ОККО, прогрів..." class="w-full bg-cardSubDark border border-borderDark rounded-xl px-3 py-2 text-xs text-white focus:border-brandGreen focus:outline-none">
+        </div>
+
+        <button type="submit" class="w-full py-3 bg-brandGreen text-black font-extrabold rounded-xl text-sm shadow-lg shadow-brandGreen/25 active:scale-95 transition">
+          Зберегти заправку
+        </button>
+      </form>
+
+      <!-- FORM SERVICE -->
+      <form id="formService" onsubmit="saveService(event)" class="space-y-3 hidden">
+        <div>
+          <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">Вузол</label>
+          <select id="sNode" class="w-full bg-cardSubDark border border-borderDark rounded-xl px-3 py-2 text-xs text-white">
+            <option value="ГБО">ГБО</option>
+            <option value="Двигун">Двигун (Олива / Свічки / ГРМ)</option>
+            <option value="Охолодження">Охолодження (Термостат / Патрубки)</option>
+            <option value="Гальма">Гальма</option>
+            <option value="Ходова">Ходова</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">Назва роботи</label>
+          <input type="text" id="sName" required placeholder="Заміна фільтрів ГБО..." class="w-full bg-cardSubDark border border-borderDark rounded-xl px-3 py-2 text-xs text-white">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">OEM / Артикул</label>
+            <input type="text" id="sOem" placeholder="KN-279" class="w-full bg-cardSubDark border border-borderDark rounded-xl px-3 py-2 text-xs text-white font-mono">
+          </div>
+          <div>
+            <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">Вартість (грн)</label>
+            <input type="number" id="sCost" required placeholder="350" class="w-full bg-cardSubDark border border-borderDark rounded-xl px-3 py-2 text-xs text-white font-mono">
+          </div>
+        </div>
+        <button type="submit" class="w-full py-3 bg-blue-500 text-white font-extrabold rounded-xl text-sm shadow-lg shadow-blue-500/25 active:scale-95 transition">
+          Зберегти ТО
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+  <script>
+    const DEFAULT_RECORDS = [
+      { id: 1, date: "2026-08-15 10:00", type: "fuel", fuel: "Petrol", liters: 15.0, cost: 885, odo: 282400, full: false, cons: null, notes: "Бензин на прогріви (ОККО)" },
+      { id: 2, date: "2026-08-27 16:53", type: "fuel", fuel: "LPG", liters: 21.3, cost: 787, odo: 282699, full: true, cons: 7.3, notes: "Поїздка в Албанію" },
+      { id: 3, date: "2026-08-27 23:05", type: "fuel", fuel: "LPG", liters: 21.8, cost: 745, odo: 282996, full: true, cons: 7.2, notes: "Автобан (€14)" },
+      { id: 4, date: "2026-08-28 07:13", type: "fuel", fuel: "LPG", liters: 29.9, cost: 1525, odo: 283413, full: true, cons: 8.1, notes: "Траса" },
+      { id: 5, date: "2026-08-28 15:16", type: "fuel", fuel: "LPG", liters: 16.8, cost: 746, odo: 283621, full: true, cons: 8.3, notes: "" },
+      { id: 6, date: "2026-08-29 11:03", type: "fuel", fuel: "LPG", liters: 26.9, cost: 932, odo: 283946, full: true, cons: 8.4, notes: "Гірські серпантини" },
+      { id: 7, date: "2026-08-29 19:57", type: "fuel", fuel: "LPG", liters: 21.0, cost: 786, odo: 284196, full: true, cons: 8.5, notes: "" },
+      { id: 8, date: "2026-09-02 11:13", type: "fuel", fuel: "LPG", liters: 26.6, cost: 1101, odo: 284510, full: true, cons: 8.47, notes: "Львів, місто" }
+    ];
+
+    const DEFAULT_SERVICES = [
+      { name: "Олива двигуна 5W-40 + фільтр", oem: "Mann W712/94", interval: 10000, last: 280000, node: "Двигун" },
+      { name: "Фільтр газу парової фази (12/12)", oem: "KME KN-279", interval: 10000, last: 280000, node: "ГБО" },
+      { name: "Фільтр газу рідкої фази", oem: "Tomasetto RGAT2070", interval: 10000, last: 280000, node: "ГБО" },
+      { name: "Свічки запалювання (4 шт.)", oem: "NGK V-Line 28", interval: 30000, last: 270000, node: "Двигун" },
+      { name: "Ремінь ГРМ і помпа", oem: "Gates KP15565XS-1", interval: 60000, last: 250500, node: "Двигун" }
+    ];
+
+    let records = JSON.parse(localStorage.getItem("fabia_records_v2")) || DEFAULT_RECORDS;
+    let services = JSON.parse(localStorage.getItem("fabia_services_v2")) || DEFAULT_SERVICES;
+    let periodFilter = '1k';
+    let currentModalFuel = 'LPG';
+
+    function saveState() {
+      localStorage.setItem("fabia_records_v2", JSON.stringify(records));
+      localStorage.setItem("fabia_services_v2", JSON.stringify(services));
+      render();
+    }
+
+    function setPeriodFilter(f) {
+      periodFilter = f;
+      ['1k', 'month', 'all'].forEach(k => {
+        const btn = document.getElementById('btnFilter' + k.charAt(0).toUpperCase() + k.slice(1));
+        if (k === f) {
+          btn.className = "py-1.5 text-xs font-semibold rounded-lg bg-brandGreen text-black transition";
+        } else {
+          btn.className = "py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition";
+        }
+      });
+      render();
+    }
+
+    function render() {
+      const fuelRecs = records.filter(r => r.type === 'fuel').sort((a, b) => a.odo - b.odo);
+      const latestOdo = fuelRecs.length > 0 ? fuelRecs[fuelRecs.length - 1].odo : 284510;
+      const initialOdo = 250500;
+      const totalDriven = latestOdo - initialOdo;
+
+      document.getElementById('heroOdometer').innerText = latestOdo.toLocaleString('uk-UA');
+      document.getElementById('heroDrivenWithMe').innerText = `+${totalDriven.toLocaleString('uk-UA')} км з вами`;
+
+      let filteredRecs = [];
+      let distanceCovered = 0;
+
+      if (periodFilter === '1k') {
+        const thresholdOdo = latestOdo - 1000;
+        filteredRecs = fuelRecs.filter(r => r.odo >= thresholdOdo);
+        const minOdo = filteredRecs.length > 0 ? filteredRecs[0].odo : latestOdo;
+        distanceCovered = Math.max(latestOdo - minOdo, 1000);
+        document.getElementById('periodBadge').innerText = "Останні 1 000 км";
+      } else if (periodFilter === 'month') {
+        const now = new Date("2026-09-03T14:40:00");
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 3600 * 1000);
+        filteredRecs = fuelRecs.filter(r => new Date(r.date) >= monthAgo);
+        const minOdo = filteredRecs.length > 0 ? filteredRecs[0].odo : latestOdo;
+        distanceCovered = Math.max(latestOdo - minOdo, 1);
+        document.getElementById('periodBadge').innerText = "Останні 30 днів";
+      } else {
+        filteredRecs = fuelRecs;
+        const minOdo = filteredRecs.length > 0 ? filteredRecs[0].odo : initialOdo;
+        distanceCovered = Math.max(latestOdo - minOdo, 1);
+        document.getElementById('periodBadge').innerText = "Весь час";
+      }
+
+      document.getElementById('periodDistanceLabel').innerText = `${distanceCovered.toLocaleString('uk-UA')} км`;
+
+      let sumLpgCost = 0, sumLpgLit = 0;
+      let sumPetCost = 0, sumPetLit = 0;
+
+      filteredRecs.forEach(r => {
+        if (r.fuel === 'LPG') {
+          sumLpgCost += r.cost;
+          sumLpgLit += r.liters;
+        } else if (r.fuel === 'Petrol') {
+          sumPetCost += r.cost;
+          sumPetLit += r.liters;
+        }
+      });
+
+      if (sumPetLit === 0 && distanceCovered > 0) {
+        sumPetLit = parseFloat(((distanceCovered / 100) * 1.0).toFixed(1));
+        sumPetCost = Math.round(sumPetLit * 59);
+      }
+
+      const totalPeriodSum = sumLpgCost + sumPetCost;
+      const lpgConsPer100 = distanceCovered > 0 ? ((sumLpgLit / distanceCovered) * 100).toFixed(1) : "8.2";
+      const petConsPer100 = distanceCovered > 0 ? ((sumPetLit / distanceCovered) * 100).toFixed(1) : "1.1";
+      const mixedCostKm = distanceCovered > 0 ? (totalPeriodSum / distanceCovered).toFixed(2) : "3.99";
+      const mixedCost100 = (parseFloat(mixedCostKm) * 100).toFixed(0);
+
+      document.getElementById('statPeriodSum').innerText = `₴ ${totalPeriodSum.toLocaleString('uk-UA')}`;
+      document.getElementById('statSubGas').innerText = `Газ: ₴${sumLpgCost.toLocaleString('uk-UA')}`;
+      document.getElementById('statSubPetrol').innerText = `Бенз: ₴${sumPetCost.toLocaleString('uk-UA')}`;
+      document.getElementById('statCostPerKm').innerText = `₴ ${mixedCostKm}`;
+      
+      document.getElementById('statGasConsumption').innerText = `${lpgConsPer100} л / 100км`;
+      document.getElementById('statGasVolume').innerText = `Об'єм: ${sumLpgLit.toFixed(1)} л`;
+      const avgGasPrice = sumLpgLit > 0 ? (sumLpgCost / sumLpgLit).toFixed(1) : "40.3";
+      document.getElementById('statGasPriceAvg').innerText = `Сер. ціна: ₴${avgGasPrice}/л`;
+
+      document.getElementById('statPetrolConsumption').innerText = `${petConsPer100} л / 100км`;
+      document.getElementById('statPetrolVolume').innerText = `Об'єм: ${sumPetLit.toFixed(1)} л`;
+      const avgPetPrice = sumPetLit > 0 ? (sumPetCost / sumPetLit).toFixed(1) : "59.0";
+      document.getElementById('statPetrolPriceAvg').innerText = `Сер. ціна: ₴${avgPetPrice}/л`;
+
+      document.getElementById('statCombined100km').innerText = `₴ ${mixedCost100} / 100км`;
+
+      const oilLeft = (280000 + 10000) - latestOdo;
+      document.getElementById('quickOilKm').innerText = `${oilLeft.toLocaleString('uk-UA')} км`;
+      document.getElementById('quickLpgKm').innerText = `${oilLeft.toLocaleString('uk-UA')} км`;
+
+      const rev = [...records].reverse();
+      document.getElementById('previewList').innerHTML = rev.slice(0, 3).map(r => formatCard(r)).join('');
+      renderHistoryList(records);
+      renderServiceList(latestOdo);
+    }
+
+    function formatCard(r) {
+      const isLpg = r.fuel === 'LPG';
+      const isPetrol = r.fuel === 'Petrol';
+      let title = isLpg ? 'Газ (LPG)' : (isPetrol ? 'Бензин А-95 (прогрів)' : `ТО: ${r.name}`);
+      let icon = isLpg ? '⛽' : (isPetrol ? '🟡' : '🔧');
+      let badge = isLpg ? `${r.liters} л` : (isPetrol ? `${r.liters} л` : r.oem);
+
+      return `
+        <div class="bg-cardDark border border-borderDark rounded-xl p-3 flex justify-between items-center">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-9 h-9 rounded-xl bg-cardSubDark border border-borderDark flex items-center justify-center text-base">
+              ${icon}
+            </div>
+            <div>
+              <div class="text-xs font-bold text-white flex items-center space-x-1.5">
+                <span>${title}</span>
+                <span class="text-[10px] text-gray-400 font-mono bg-cardSubDark px-1.5 py-0.2 rounded">${badge}</span>
+              </div>
+              <div class="text-[11px] text-gray-400 mt-0.5 font-mono">${r.date} • ${r.odo.toLocaleString('uk-UA')} км</div>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-sm font-bold text-white font-mono">₴ ${r.cost.toLocaleString('uk-UA')}</div>
+            ${r.cons ? `<div class="text-[11px] font-bold text-brandGreen font-mono">${r.cons} л/100км</div>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderHistoryList(list) {
+      document.getElementById('fullList').innerHTML = [...list].reverse().map(r => formatCard(r)).join('');
+    }
+
+    function filterRecords(type) {
+      ['All', 'Lpg', 'Petrol', 'Serv'].forEach(k => {
+        const b = document.getElementById('flt' + k);
+        b.className = "px-2.5 py-1 text-xs rounded text-gray-400";
+      });
+
+      if (type === 'all') {
+        document.getElementById('fltAll').className = "px-2.5 py-1 text-xs rounded bg-brandGreen text-black font-semibold";
+        renderHistoryList(records);
+      } else if (type === 'LPG') {
+        document.getElementById('fltLpg').className = "px-2.5 py-1 text-xs rounded bg-brandGreen text-black font-semibold";
+        renderHistoryList(records.filter(r => r.fuel === 'LPG'));
+      } else if (type === 'Petrol') {
+        document.getElementById('fltPetrol').className = "px-2.5 py-1 text-xs rounded bg-amber-400 text-black font-semibold";
+        renderHistoryList(records.filter(r => r.fuel === 'Petrol'));
+      } else {
+        document.getElementById('fltServ').className = "px-2.5 py-1 text-xs rounded bg-blue-500 text-white font-semibold";
+        renderHistoryList(records.filter(r => r.type === 'service'));
+      }
+    }
+
+    function renderServiceList(currentOdo) {
+      document.getElementById('serviceList').innerHTML = services.map(s => {
+        const next = s.last + s.interval;
+        const left = next - currentOdo;
+        const pct = Math.min(100, Math.max(0, ((currentOdo - s.last) / s.interval) * 100));
+        const urgent = left <= 1000;
+
+        return `
+          <div class="bg-cardDark border border-borderDark rounded-xl p-3.5 space-y-2">
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="text-[10px] bg-cardSubDark text-gray-400 px-1.5 py-0.5 rounded font-mono uppercase">${s.node}</span>
+                <h4 class="text-xs font-bold text-white mt-1">${s.name}</h4>
+                <p class="text-[11px] text-gray-400 font-mono">OEM: ${s.oem}</p>
+              </div>
+              <div class="text-right">
+                <span class="text-xs font-bold ${urgent ? 'text-rose-400' : 'text-amber-400'} font-mono">${left.toLocaleString('uk-UA')} км</span>
+                <span class="text-[10px] text-gray-400 block">залишок</span>
+              </div>
+            </div>
+            <div class="w-full bg-cardSubDark rounded-full h-1.5 overflow-hidden">
+              <div class="h-1.5 ${urgent ? 'bg-rose-500' : 'bg-amber-400'}" style="width: ${pct}%"></div>
+            </div>
+            <div class="flex justify-between text-[10px] text-gray-400 pt-1">
+              <span>Заміна: ${s.last.toLocaleString('uk-UA')} км</span>
+              <span>План: ${next.toLocaleString('uk-UA')} км</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function switchTab(id) {
+      ['tabGarage', 'tabHistory', 'tabReports', 'tabService'].forEach(t => {
+        document.getElementById(t).classList.add('hidden');
+        document.getElementById('btn-' + t).className = "py-1 text-gray-400 text-xs flex flex-col items-center";
+      });
+      document.getElementById(id).classList.remove('hidden');
+      document.getElementById('btn-' + id).className = "py-1 text-brandGreen text-xs flex flex-col items-center";
+      if (id === 'tabReports') initCharts();
+    }
+
+    function openModal(cat) {
+      document.getElementById('modal').classList.remove('hidden');
+      const last = records[records.length - 1];
+      document.getElementById('inpOdo').value = last ? last.odo : 284510;
+      selectModalCategory(cat);
+    }
+    function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+
+    function selectModalCategory(c) {
+      if (c === 'fuel') {
+        document.getElementById('modalBtnFuel').className = "py-2 text-xs font-semibold rounded-lg bg-brandGreen text-black transition";
+        document.getElementById('modalBtnService').className = "py-2 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition";
+        document.getElementById('formFuel').classList.remove('hidden');
+        document.getElementById('formService').classList.add('hidden');
+      } else {
+        document.getElementById('modalBtnFuel').className = "py-2 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition";
+        document.getElementById('modalBtnService').className = "py-2 text-xs font-semibold rounded-lg bg-blue-500 text-white transition";
+        document.getElementById('formFuel').classList.add('hidden');
+        document.getElementById('formService').classList.remove('hidden');
+      }
+    }
+
+    function setModalFuel(f) {
+      currentModalFuel = f;
+      if (f === 'LPG') {
+        document.getElementById('mFuelLpg').className = "py-2 text-xs font-bold rounded-lg bg-brandGreen/20 border border-brandGreen text-brandGreen";
+        document.getElementById('mFuelPetrol').className = "py-2 text-xs font-bold rounded-lg bg-cardSubDark border border-borderDark text-gray-400";
+      } else {
+        document.getElementById('mFuelPetrol').className = "py-2 text-xs font-bold rounded-lg bg-amber-400/20 border border-amber-400 text-amber-400";
+        document.getElementById('mFuelLpg').className = "py-2 text-xs font-bold rounded-lg bg-cardSubDark border border-borderDark text-gray-400";
+      }
+    }
+
+    function saveFuel(e) {
+      e.preventDefault();
+      const odo = parseInt(document.getElementById('inpOdo').value);
+      const lit = parseFloat(document.getElementById('inpLit').value);
+      const sum = parseFloat(document.getElementById('inpSum').value);
+      const curr = document.getElementById('inpCurr').value;
+      const full = document.getElementById('inpFull').checked;
+      const notes = document.getElementById('inpNotes').value;
+
+      const prev = [...records].reverse().find(r => r.fuel === currentModalFuel);
+      let cons = null;
+      if (prev && odo > prev.odo && full) {
+        const d = odo - prev.odo;
+        cons = parseFloat(((lit / d) * 100).toFixed(2));
+      }
+
+      records.push({
+        id: Date.now(),
+        date: new Date().toISOString().slice(0, 16).replace('T', ' '),
+        type: 'fuel',
+        fuel: currentModalFuel,
+        liters: lit,
+        cost: curr === 'EUR' ? sum * 53 : sum,
+        odo: odo,
+        full: full,
+        cons: cons,
+        notes: notes
+      });
+
+      saveState();
+      closeModal();
+    }
+
+    function saveService(e) {
+      e.preventDefault();
+      const name = document.getElementById('sName').value;
+      const node = document.getElementById('sNode').value;
+      const oem = document.getElementById('sOem').value;
+      const cost = parseFloat(document.getElementById('sCost').value);
+      const latestOdo = records.length > 0 ? records[records.length - 1].odo : 284510;
+
+      records.push({
+        id: Date.now(),
+        date: new Date().toISOString().slice(0, 16).replace('T', ' '),
+        type: 'service',
+        name: name,
+        node: node,
+        oem: oem || "—",
+        cost: cost,
+        odo: latestOdo
+      });
+
+      saveState();
+      closeModal();
+    }
+
+    let chartsInit = false;
+    function initCharts() {
+      if (chartsInit) return;
+      chartsInit = true;
+      new Chart(document.getElementById('barChart'), {
+        type: 'bar',
+        data: { labels: ['Лип', 'Сер', 'Вер'], datasets: [{ data: [0, 6226, 1101], backgroundColor: '#22c55e', borderRadius: 5 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+      new Chart(document.getElementById('lineChart'), {
+        type: 'line',
+        data: { labels: ['27 сер', '27 сер (ніч)', '28 сер', '28 сер', '29 сер', '29 сер', '2 вер'], datasets: [{ data: [7.3, 7.2, 8.1, 8.3, 8.4, 8.5, 8.47], borderColor: '#22c55e', tension: 0.35 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+    }
+
+    window.onload = render;
+  </script>
+</body>
+</html>
