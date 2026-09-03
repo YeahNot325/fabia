@@ -44,7 +44,7 @@
       color: #f3f4f6;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
       -webkit-tap-highlight-color: transparent;
-      padding-bottom: calc(var(--sab) + 70px);
+      padding-bottom: calc(var(--sab) + 75px);
     }
     .header-safe {
       padding-top: max(48px, env(safe-area-inset-top, 48px));
@@ -54,7 +54,7 @@
     }
 
     .tab-content {
-      animation: fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(6px); }
@@ -62,14 +62,16 @@
     }
 
     .modal-sheet {
-      transition: transform 0.26s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.26s ease;
+      transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.28s ease;
     }
     .modal-sheet.closed {
       transform: translateY(100%);
+      pointer-events: none;
       opacity: 0;
     }
     .modal-sheet.open {
       transform: translateY(0);
+      pointer-events: auto;
       opacity: 1;
     }
 
@@ -81,8 +83,8 @@
 </head>
 <body class="bg-bgDark text-gray-100 flex flex-col min-h-screen select-none">
 
-  <!-- TOP HEADER (Safely offset below iPhone status bar) -->
-  <header class="sticky top-0 z-40 bg-[#0a0a0c]/90 backdrop-blur-xl border-b border-borderDark px-4 pb-3 header-safe">
+  <!-- TOP HEADER -->
+  <header class="sticky top-0 z-30 bg-[#0a0a0c]/90 backdrop-blur-xl border-b border-borderDark px-4 pb-3 header-safe">
     <div class="flex items-center justify-between max-w-md mx-auto">
       <div class="flex items-center space-x-3">
         <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-cardSubDark to-[#121318] flex items-center justify-center border border-borderDark text-brandGreen font-bold text-lg shadow-inner">
@@ -264,7 +266,7 @@
       <!-- 5. RECENT LOGS PREVIEW -->
       <div class="space-y-2">
         <div class="flex justify-between items-center px-1">
-          <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Останні операції (тапніть для ред.)</span>
+          <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Останні операції (натисніть для ред.)</span>
           <button onclick="switchTab('tabHistory')" class="text-xs text-brandGreen font-semibold">Вся історія →</button>
         </div>
         <div id="previewList" class="space-y-2"></div>
@@ -272,12 +274,12 @@
 
     </section>
 
-    <!-- TAB 2: HISTORY (FULL LIST WITH TAP TO EDIT/DELETE) -->
+    <!-- TAB 2: HISTORY (FULL LIST) -->
     <section id="tabHistory" class="tab-content space-y-3 hidden">
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-base font-extrabold text-white">Історія записів</h2>
-          <p class="text-[11px] text-gray-400">Натисніть на будь-який рядок для редагування</p>
+          <p class="text-[11px] text-gray-400">Натисніть на запис, щоб змінити або видалити</p>
         </div>
         <div class="flex space-x-1 bg-cardSubDark p-1 rounded-xl border border-borderDark">
           <button onclick="filterRecords('all')" id="fltAll" class="px-2.5 py-1 text-xs rounded-lg bg-brandGreen text-black font-bold">Всі</button>
@@ -348,7 +350,7 @@
   </main>
 
   <!-- BOTTOM NAVIGATION BAR -->
-  <nav class="fixed bottom-0 left-0 right-0 z-40 bg-[#0a0a0c]/90 backdrop-blur-xl border-t border-borderDark pt-2 nav-safe">
+  <nav class="fixed bottom-0 left-0 right-0 z-30 bg-[#0a0a0c]/90 backdrop-blur-xl border-t border-borderDark pt-2 nav-safe">
     <div class="max-w-md mx-auto grid grid-cols-4 text-center">
       <button onclick="switchTab('tabGarage')" id="btn-tabGarage" class="py-1 text-brandGreen text-xs flex flex-col items-center tap-press">
         <span class="text-lg">🚗</span>
@@ -370,25 +372,25 @@
   </nav>
 
   <!-- MODAL BOTTOM SHEET (CREATE & EDIT & DELETE) -->
-  <div id="modalOverlay" onclick="closeModal()" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm transition-opacity duration-200 hidden opacity-0"></div>
+  <div id="modalOverlay" onclick="closeModal()" class="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm transition-opacity duration-250 hidden opacity-0"></div>
 
   <div id="modalSheet" class="fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto modal-sheet closed">
-    <div class="bg-cardDark border-t border-x border-borderDark rounded-t-3xl p-5 space-y-4 max-h-[85vh] overflow-y-auto hide-scrollbar shadow-2xl pb-8">
+    <div class="bg-[#131419] border-t border-x border-borderDark rounded-t-3xl p-5 space-y-4 max-h-[85vh] overflow-y-auto shadow-2xl pb-10">
       
       <div class="flex justify-between items-center border-b border-borderDark/60 pb-3">
         <div class="flex items-center space-x-2">
           <h3 id="modalHeading" class="text-base font-extrabold text-white">Нова заправка</h3>
           <span id="modalSub" class="text-xs text-gray-400 font-mono">Fabia 1.4</span>
         </div>
-        <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-cardSubDark text-gray-300 flex items-center justify-center font-bold tap-press">✕</button>
+        <button type="button" onclick="closeModal()" class="w-8 h-8 rounded-full bg-cardSubDark text-gray-300 flex items-center justify-center font-bold tap-press">✕</button>
       </div>
 
-      <!-- Toggle Fuel / Service (Only visible on Create mode) -->
+      <!-- Toggle Fuel / Service -->
       <div id="typeToggleWrap" class="grid grid-cols-2 gap-2 bg-cardSubDark p-1 rounded-2xl border border-borderDark">
-        <button id="modalBtnFuel" onclick="selectModalCategory('fuel')" class="py-2 text-xs font-bold rounded-xl bg-brandGreen text-black transition">
+        <button type="button" id="modalBtnFuel" onclick="selectModalCategory('fuel')" class="py-2 text-xs font-bold rounded-xl bg-brandGreen text-black transition">
           ⛽ Заправка
         </button>
-        <button id="modalBtnService" onclick="selectModalCategory('service')" class="py-2 text-xs font-bold rounded-xl text-gray-400 hover:text-white transition">
+        <button type="button" id="modalBtnService" onclick="selectModalCategory('service')" class="py-2 text-xs font-bold rounded-xl text-gray-400 hover:text-white transition">
           🔧 Сервіс / ТО
         </button>
       </div>
@@ -444,11 +446,11 @@
         </div>
 
         <!-- Buttons for Save & Delete -->
-        <div class="space-y-2 pt-1">
+        <div class="space-y-2 pt-2">
           <button type="submit" id="btnSubmitFuel" class="w-full py-3.5 bg-brandGreen text-black font-black rounded-2xl text-sm shadow-lg shadow-brandGreen/25 tap-press">
             Зберегти заправку
           </button>
-          <button type="button" id="btnDeleteFuel" onclick="handleDeleteCurrentRecord()" class="w-full py-3 bg-rose-500/15 border border-rose-500/40 text-rose-400 font-bold rounded-2xl text-xs tap-press hidden">
+          <button type="button" id="btnDeleteFuel" onclick="handleDeleteCurrentRecord()" class="w-full py-3 bg-rose-500/20 border border-rose-500/40 text-rose-400 font-bold rounded-2xl text-xs tap-press hidden">
             🗑️ Видалити цей запис
           </button>
         </div>
@@ -481,11 +483,11 @@
           </div>
         </div>
         
-        <div class="space-y-2 pt-1">
+        <div class="space-y-2 pt-2">
           <button type="submit" id="btnSubmitService" class="w-full py-3.5 bg-blue-500 text-white font-black rounded-2xl text-sm shadow-lg shadow-blue-500/25 tap-press">
             Зберегти ТО
           </button>
-          <button type="button" id="btnDeleteService" onclick="handleDeleteCurrentRecord()" class="w-full py-3 bg-rose-500/15 border border-rose-500/40 text-rose-400 font-bold rounded-2xl text-xs tap-press hidden">
+          <button type="button" id="btnDeleteService" onclick="handleDeleteCurrentRecord()" class="w-full py-3 bg-rose-500/20 border border-rose-500/40 text-rose-400 font-bold rounded-2xl text-xs tap-press hidden">
             🗑️ Видалити цей запис
           </button>
         </div>
@@ -495,18 +497,18 @@
   </div>
 
   <script>
-    const DEFAULT_RECORDS = [
-      { id: 1, date: "2026-08-15 10:00", type: "fuel", fuel: "Petrol", liters: 10.0, cost: 590, odo: 282400, full: false, cons: null, notes: "Бензин на прогріви (ОККО)" },
-      { id: 2, date: "2026-08-27 16:53", type: "fuel", fuel: "LPG", liters: 21.3, cost: 787, odo: 282699, full: true, cons: 7.3, notes: "Поїздка в Албанію" },
-      { id: 3, date: "2026-08-27 23:05", type: "fuel", fuel: "LPG", liters: 21.8, cost: 745, odo: 282996, full: true, cons: 7.2, notes: "Автобан (€14)" },
-      { id: 4, date: "2026-08-28 07:13", type: "fuel", fuel: "LPG", liters: 29.9, cost: 1525, odo: 283413, full: true, cons: 8.1, notes: "Траса" },
-      { id: 5, date: "2026-08-28 15:16", type: "fuel", fuel: "LPG", liters: 16.8, cost: 746, odo: 283621, full: true, cons: 8.3, notes: "" },
-      { id: 6, date: "2026-08-29 11:03", type: "fuel", fuel: "LPG", liters: 26.9, cost: 932, odo: 283946, full: true, cons: 8.4, notes: "Гірські серпантини" },
-      { id: 7, date: "2026-08-29 19:57", type: "fuel", fuel: "LPG", liters: 21.0, cost: 786, odo: 284196, full: true, cons: 8.5, notes: "" },
-      { id: 8, date: "2026-09-02 11:13", type: "fuel", fuel: "LPG", liters: 26.6, cost: 1101, odo: 284510, full: true, cons: 8.47, notes: "Львів, місто" }
+    const INITIAL_DATA_RECORDS = [
+      { id: "rec-1", date: "2026-08-15 10:00", type: "fuel", fuel: "Petrol", liters: 10.0, cost: 590, odo: 282400, full: false, cons: null, notes: "Бензин на прогріви (ОККО)" },
+      { id: "rec-2", date: "2026-08-27 16:53", type: "fuel", fuel: "LPG", liters: 21.3, cost: 787, odo: 282699, full: true, cons: 7.3, notes: "Поїздка в Албанію" },
+      { id: "rec-3", date: "2026-08-27 23:05", type: "fuel", fuel: "LPG", liters: 21.8, cost: 745, odo: 282996, full: true, cons: 7.2, notes: "Автобан (€14)" },
+      { id: "rec-4", date: "2026-08-28 07:13", type: "fuel", fuel: "LPG", liters: 29.9, cost: 1525, odo: 283413, full: true, cons: 8.1, notes: "Траса" },
+      { id: "rec-5", date: "2026-08-28 15:16", type: "fuel", fuel: "LPG", liters: 16.8, cost: 746, odo: 283621, full: true, cons: 8.3, notes: "" },
+      { id: "rec-6", date: "2026-08-29 11:03", type: "fuel", fuel: "LPG", liters: 26.9, cost: 932, odo: 283946, full: true, cons: 8.4, notes: "Гірські серпантини" },
+      { id: "rec-7", date: "2026-08-29 19:57", type: "fuel", fuel: "LPG", liters: 21.0, cost: 786, odo: 284196, full: true, cons: 8.5, notes: "" },
+      { id: "rec-8", date: "2026-09-02 11:13", type: "fuel", fuel: "LPG", liters: 26.6, cost: 1101, odo: 284510, full: true, cons: 8.47, notes: "Львів, місто" }
     ];
 
-    const DEFAULT_SERVICES = [
+    const INITIAL_SERVICES = [
       { name: "Олива двигуна 5W-40 + фільтр", oem: "Mann W712/94", interval: 10000, last: 280000, node: "Двигун" },
       { name: "Фільтр газу парової фази (12/12)", oem: "KME KN-279", interval: 10000, last: 280000, node: "ГБО" },
       { name: "Фільтр газу рідкої фази", oem: "Tomasetto RGAT2070", interval: 10000, last: 280000, node: "ГБО" },
@@ -514,11 +516,27 @@
       { name: "Ремінь ГРМ і помпа", oem: "Gates KP15565XS-1", interval: 60000, last: 250500, node: "Двигун" }
     ];
 
-    let records = JSON.parse(localStorage.getItem("fabia_records_v4")) || DEFAULT_RECORDS;
-    let services = JSON.parse(localStorage.getItem("fabia_services_v4")) || DEFAULT_SERVICES;
+    let records = [];
+    try {
+      const stored = localStorage.getItem("fabia_records_v5") || localStorage.getItem("fabia_records_v4") || localStorage.getItem("fabia_records_v3");
+      if (stored) records = JSON.parse(stored);
+    } catch(err) { console.error(err); }
+
+    if (!Array.isArray(records) || records.length === 0) {
+      records = INITIAL_DATA_RECORDS;
+    }
+
+    records.forEach((r, idx) => {
+      if (!r.id) r.id = "rec-" + (idx + 1);
+      r.odo = Number(r.odo) || 284510;
+      r.liters = Number(r.liters) || 0;
+      r.cost = Number(r.cost) || 0;
+    });
+
+    let services = JSON.parse(localStorage.getItem("fabia_services_v5")) || INITIAL_SERVICES;
     let periodFilter = '1k';
     let currentModalFuel = 'LPG';
-    let editingRecordId = null;
+    let activeEditingId = null;
 
     function saveState() {
       records.sort((a, b) => a.odo - b.odo);
@@ -543,8 +561,8 @@
         }
       });
 
-      localStorage.setItem("fabia_records_v4", JSON.stringify(records));
-      localStorage.setItem("fabia_services_v4", JSON.stringify(services));
+      localStorage.setItem("fabia_records_v5", JSON.stringify(records));
+      localStorage.setItem("fabia_services_v5", JSON.stringify(services));
       render();
     }
 
@@ -651,11 +669,11 @@
       const isPetrol = r.fuel === 'Petrol';
       let title = isLpg ? 'Газ (LPG)' : (isPetrol ? 'Бензин А-95 (прогрів)' : `ТО: ${r.name}`);
       let icon = isLpg ? '⛽' : (isPetrol ? '🟡' : '🔧');
-      let badge = isLpg ? `${r.liters} л` : (isPetrol ? `${r.liters} л` : r.oem);
+      let badge = isLpg ? `${r.liters} л` : (isPetrol ? `${r.liters} л` : (r.oem || 'ТО'));
 
       return `
-        <div onclick="openEditModal(${r.id})" class="bg-cardDark border border-borderDark rounded-2xl p-3.5 flex justify-between items-center tap-press transition active:border-brandGreen/60 cursor-pointer">
-          <div class="flex items-center space-x-3">
+        <button type="button" onclick="openEditModal('${r.id}')" class="w-full text-left bg-cardDark border border-borderDark rounded-2xl p-3.5 flex justify-between items-center tap-press transition active:border-brandGreen cursor-pointer">
+          <div class="flex items-center space-x-3 pointer-events-none">
             <div class="w-10 h-10 rounded-xl bg-cardSubDark border border-borderDark flex items-center justify-center text-lg">
               ${icon}
             </div>
@@ -667,11 +685,11 @@
               <div class="text-[11px] text-gray-400 mt-0.5 font-mono">${r.date} • ${r.odo.toLocaleString('uk-UA')} км</div>
             </div>
           </div>
-          <div class="text-right">
+          <div class="text-right pointer-events-none">
             <div class="text-sm font-black text-white font-mono">₴ ${r.cost.toLocaleString('uk-UA')}</div>
             ${r.cons ? `<div class="text-[11px] font-bold text-brandGreen font-mono">${r.cons} л/100км</div>` : '<span class="text-[10px] text-gray-400">ред. ✏️</span>'}
           </div>
-        </div>
+        </button>
       `;
     }
 
@@ -747,9 +765,9 @@
       if (id === 'tabReports') initCharts();
     }
 
-    // MODAL HANDLERS: CREATE VS EDIT
+    // MODAL HANDLERS
     function openCreateModal(cat) {
-      editingRecordId = null;
+      activeEditingId = null;
       document.getElementById('modalHeading').innerText = cat === 'fuel' ? "Нова заправка" : "Новий запис ТО";
       document.getElementById('modalSub').innerText = "Fabia 1.4";
       document.getElementById('typeToggleWrap').classList.remove('hidden');
@@ -758,7 +776,8 @@
       document.getElementById('btnSubmitService').innerText = "Зберегти ТО";
       document.getElementById('btnDeleteService').classList.add('hidden');
 
-      const last = records[records.length - 1];
+      const fuelRecs = records.filter(r => r.type === 'fuel').sort((a,b) => a.odo - b.odo);
+      const last = fuelRecs[fuelRecs.length - 1];
       document.getElementById('inpOdo').value = last ? last.odo : 284510;
       document.getElementById('inpLit').value = "";
       document.getElementById('inpSum').value = "";
@@ -769,17 +788,17 @@
     }
 
     function openEditModal(recordId) {
-      const rec = records.find(r => r.id === recordId);
+      const rec = records.find(r => String(r.id) === String(recordId));
       if (!rec) return;
 
-      editingRecordId = recordId;
+      activeEditingId = rec.id;
       document.getElementById('modalHeading').innerText = "Редагувати запис";
-      document.getElementById('modalSub').innerText = `${rec.date} • #${rec.id}`;
+      document.getElementById('modalSub').innerText = `${rec.date}`;
       document.getElementById('typeToggleWrap').classList.add('hidden');
 
       if (rec.type === 'fuel') {
         selectModalCategory('fuel');
-        setModalFuel(rec.fuel);
+        setModalFuel(rec.fuel || 'LPG');
         document.getElementById('inpOdo').value = rec.odo;
         document.getElementById('inpLit').value = rec.liters;
         document.getElementById('inpSum').value = rec.cost;
@@ -820,7 +839,7 @@
       sheet.classList.add('closed');
       setTimeout(() => {
         overlay.classList.add('hidden');
-      }, 240);
+      }, 260);
     }
 
     function selectModalCategory(c) {
@@ -858,8 +877,8 @@
       const notes = document.getElementById('inpNotes').value;
       const costUAH = curr === 'EUR' ? sum * 53 : sum;
 
-      if (editingRecordId) {
-        const idx = records.findIndex(r => r.id === editingRecordId);
+      if (activeEditingId) {
+        const idx = records.findIndex(r => String(r.id) === String(activeEditingId));
         if (idx !== -1) {
           records[idx].odo = odo;
           records[idx].liters = lit;
@@ -870,7 +889,7 @@
         }
       } else {
         records.push({
-          id: Date.now(),
+          id: "rec-" + Date.now(),
           date: new Date().toISOString().slice(0, 16).replace('T', ' '),
           type: 'fuel',
           fuel: currentModalFuel,
@@ -893,10 +912,11 @@
       const node = document.getElementById('sNode').value;
       const oem = document.getElementById('sOem').value;
       const cost = parseFloat(document.getElementById('sCost').value);
-      const latestOdo = records.length > 0 ? records[records.length - 1].odo : 284510;
+      const fuelRecs = records.filter(r => r.type === 'fuel').sort((a,b) => a.odo - b.odo);
+      const latestOdo = fuelRecs.length > 0 ? fuelRecs[fuelRecs.length - 1].odo : 284510;
 
-      if (editingRecordId) {
-        const idx = records.findIndex(r => r.id === editingRecordId);
+      if (activeEditingId) {
+        const idx = records.findIndex(r => String(r.id) === String(activeEditingId));
         if (idx !== -1) {
           records[idx].name = name;
           records[idx].node = node;
@@ -905,7 +925,7 @@
         }
       } else {
         records.push({
-          id: Date.now(),
+          id: "rec-" + Date.now(),
           date: new Date().toISOString().slice(0, 16).replace('T', ' '),
           type: 'service',
           name: name,
@@ -921,9 +941,9 @@
     }
 
     function handleDeleteCurrentRecord() {
-      if (!editingRecordId) return;
-      if (confirm("Точно видалити цей запис? Витрата перерахується автоматично.")) {
-        records = records.filter(r => r.id !== editingRecordId);
+      if (!activeEditingId) return;
+      if (confirm("Точно видалити цей запис? Розрахунок витрати газу та суми оновиться автоматично.")) {
+        records = records.filter(r => String(r.id) !== String(activeEditingId));
         saveState();
         closeModal();
       }
@@ -942,14 +962,6 @@
         type: 'line',
         data: { labels: ['27 сер', '27 сер (ніч)', '28 сер', '28 сер', '29 сер', '29 сер', '2 вер'], datasets: [{ data: [7.3, 7.2, 8.1, 8.3, 8.4, 8.5, 8.47], borderColor: '#22c55e', tension: 0.35 }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-      });
-    }
-
-    window.onload = render;
-  </script>
-</body>
-</html>
- } } }
       });
     }
 
