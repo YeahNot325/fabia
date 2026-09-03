@@ -4,10 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Skoda Fabia — Бортовий журнал</title>
+  
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Fabia Log">
   <meta name="theme-color" content="#0a0a0c">
 
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -16,343 +19,403 @@
         extend: {
           colors: {
             bgDark: '#0a0a0c',
-            cardDark: '#14151a',
-            cardSubDark: '#1c1e26',
-            borderDark: '#262934',
+            cardDark: '#131419',
+            cardSubDark: '#1b1d24',
+            borderDark: '#252833',
             brandGreen: '#22c55e',
             brandBlue: '#3b82f6',
-            brandOrange: '#f97316'
+            brandAmber: '#f59e0b'
           }
         }
       }
     }
   </script>
+  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
+    :root {
+      --sat: env(safe-area-inset-top, 48px);
+      --sab: env(safe-area-inset-bottom, 24px);
+    }
     body {
       background-color: #0a0a0c;
       color: #f3f4f6;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
       -webkit-tap-highlight-color: transparent;
-      padding-bottom: env(safe-area-inset-bottom, 24px);
+      padding-bottom: calc(var(--sab) + 70px);
     }
-    .safe-top { padding-top: env(safe-area-inset-top, 16px); }
-    .hide-scrollbar::-webkit-scrollbar { display: none; }
-    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .header-safe {
+      padding-top: max(48px, env(safe-area-inset-top, 48px));
+    }
+    .nav-safe {
+      padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+    }
+
+    .tab-content {
+      animation: fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-sheet {
+      transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.28s ease;
+    }
+    .modal-sheet.closed {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    .modal-sheet.open {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .tap-press:active {
+      transform: scale(0.96);
+      transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+    }
   </style>
 </head>
 <body class="bg-bgDark text-gray-100 flex flex-col min-h-screen select-none">
 
-  <!-- TOP HEADER -->
-  <header class="sticky top-0 z-30 bg-bgDark/95 backdrop-blur-md border-b border-borderDark px-4 py-3 safe-top">
+  <!-- TOP HEADER (Safely offset below iPhone status bar) -->
+  <header class="sticky top-0 z-40 bg-[#0a0a0c]/90 backdrop-blur-xl border-b border-borderDark px-4 pb-3 header-safe">
     <div class="flex items-center justify-between max-w-md mx-auto">
       <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-full bg-cardSubDark flex items-center justify-center border border-borderDark text-brandGreen font-bold text-lg">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-cardSubDark to-[#121318] flex items-center justify-center border border-borderDark text-brandGreen font-bold text-lg shadow-inner">
           ⛽
         </div>
         <div>
-          <div class="flex items-center space-x-2">
-            <h1 class="text-base font-bold tracking-tight">Skoda Fabia II</h1>
-            <span class="text-[10px] bg-brandGreen/20 text-brandGreen px-1.5 py-0.5 rounded font-mono font-semibold">1.4 Бензин + LPG</span>
+          <div class="flex items-center space-x-1.5">
+            <h1 class="text-base font-extrabold tracking-tight text-white">Skoda Fabia II</h1>
+            <span class="text-[10px] bg-brandGreen/15 text-brandGreen border border-brandGreen/30 px-1.5 py-0.5 rounded-md font-mono font-bold">1.4 LPG</span>
           </div>
-          <p class="text-xs text-gray-400 font-mono">BC 1426 MP • 2014 р.</p>
+          <p class="text-[11px] text-gray-400 font-mono tracking-wide">BC 1426 MP • 2014</p>
         </div>
       </div>
       
-      <button onclick="openModal('fuel')" class="w-9 h-9 rounded-full bg-brandGreen text-black font-extrabold flex items-center justify-center text-xl active:scale-90 transition shadow-lg shadow-brandGreen/25">
+      <button onclick="openModal('fuel')" class="w-10 h-10 rounded-2xl bg-brandGreen text-black font-black flex items-center justify-center text-2xl tap-press transition shadow-lg shadow-brandGreen/25">
         +
       </button>
     </div>
   </header>
 
-  <!-- MAIN VIEW -->
-  <main class="flex-1 max-w-md mx-auto w-full px-4 pt-3 pb-24 space-y-4">
+  <!-- MAIN APP CONTAINER -->
+  <main class="flex-1 max-w-md mx-auto w-full px-4 pt-3 space-y-4">
 
-    <!-- TAB 1: GARAGE -->
-    <section id="tabGarage" class="space-y-4">
+    <!-- TAB 1: GARAGE (DASHBOARD) -->
+    <section id="tabGarage" class="tab-content space-y-4">
 
-      <!-- HERO ODOMETER CARD -->
-      <div class="bg-gradient-to-br from-cardDark via-cardDark to-[#12141a] border border-borderDark rounded-2xl p-4 shadow-xl relative overflow-hidden">
+      <!-- 1. HERO ODOMETER CARD -->
+      <div class="bg-gradient-to-br from-cardDark via-[#15161c] to-[#0e0f14] border border-borderDark rounded-3xl p-4 shadow-xl relative overflow-hidden">
         <div class="flex justify-between items-start">
           <div>
-            <span class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">
-              ⏱️ Поточний пробіг авто
+            <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span>⏱️ Поточний одометр</span>
             </span>
-            <div class="flex items-baseline space-x-2 mt-1">
+            <div class="flex items-baseline space-x-1.5 mt-1">
               <h2 id="heroOdometer" class="text-3xl font-black tracking-tight text-white font-mono">284 510</h2>
-              <span class="text-base font-bold text-gray-400">км</span>
+              <span class="text-sm font-bold text-gray-400">км</span>
             </div>
           </div>
           <div class="text-right">
-            <span class="text-[10px] bg-cardSubDark border border-borderDark text-gray-300 px-2 py-1 rounded-lg font-mono">
-              Оновлено щойно
+            <span class="text-[10px] bg-cardSubDark border border-borderDark/80 text-gray-300 px-2 py-1 rounded-lg font-mono inline-block">
+              Сьогодні
             </span>
-            <p id="heroDrivenWithMe" class="text-[11px] text-gray-400 mt-1.5 font-medium">+34 010 км з вами</p>
+            <p id="heroDrivenWithMe" class="text-[11px] text-gray-400 mt-1 font-medium font-mono">+34 010 км з вами</p>
           </div>
         </div>
 
-        <!-- Period Filter Segmented Control -->
-        <div class="mt-4 pt-3 border-t border-borderDark/70">
+        <!-- Period Filter -->
+        <div class="mt-4 pt-3 border-t border-borderDark/60">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-[11px] font-semibold text-gray-300">Фільтр статистики:</span>
-            <span id="periodBadge" class="text-[10px] text-brandGreen font-medium font-mono">Останні 1 000 км</span>
+            <span class="text-[11px] font-semibold text-gray-400">Період розрахунку:</span>
+            <span id="periodBadge" class="text-[10px] text-brandGreen font-bold font-mono">Останні 1 000 км</span>
           </div>
-          <div class="grid grid-cols-3 gap-1 bg-cardSubDark p-1 rounded-xl border border-borderDark text-center">
-            <button onclick="setPeriodFilter('1k')" id="btnFilter1k" class="py-1.5 text-xs font-semibold rounded-lg bg-brandGreen text-black transition">
+          <div class="grid grid-cols-3 gap-1 bg-[#101116] p-1 rounded-xl border border-borderDark/80 text-center">
+            <button onclick="setPeriodFilter('1k')" id="btnFilter1k" class="py-1.5 text-xs font-bold rounded-lg bg-brandGreen text-black tap-press transition-all">
               1 000 км
             </button>
-            <button onclick="setPeriodFilter('month')" id="btnFilterMonth" class="py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition">
+            <button onclick="setPeriodFilter('month')" id="btnFilterMonth" class="py-1.5 text-xs font-bold rounded-lg text-gray-400 hover:text-white tap-press transition-all">
               30 днів
             </button>
-            <button onclick="setPeriodFilter('all')" id="btnFilterAll" class="py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition">
+            <button onclick="setPeriodFilter('all')" id="btnFilterAll" class="py-1.5 text-xs font-bold rounded-lg text-gray-400 hover:text-white tap-press transition-all">
               Весь час
             </button>
           </div>
         </div>
       </div>
 
-      <!-- BI-FUEL & MIXED CONSUMPTION SUMMARY -->
-      <div class="bg-cardDark border border-borderDark rounded-2xl p-4 space-y-3.5 shadow-lg">
+      <!-- 2. BI-FUEL & MIXED CONSUMPTION CARD -->
+      <div class="bg-cardDark border border-borderDark rounded-3xl p-4 space-y-3.5 shadow-lg">
         <div class="flex items-center justify-between border-b border-borderDark/60 pb-2.5">
-          <div class="flex items-center space-x-1.5">
+          <div class="flex items-center space-x-2">
             <span class="text-sm font-bold text-white tracking-wide">Витрата та вартість</span>
-            <span class="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/30 px-1.5 py-0.2 rounded font-medium">Двопаливна система</span>
+            <span class="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/25 px-2 py-0.5 rounded-full font-medium">Двопаливна</span>
           </div>
-          <span id="periodDistanceLabel" class="text-xs font-mono text-gray-400">1 000 км</span>
+          <span id="periodDistanceLabel" class="text-xs font-mono font-bold text-gray-400">1 000 км</span>
         </div>
 
-        <!-- Big Metric Cards -->
-        <div class="grid grid-cols-2 gap-3">
-          <div class="bg-cardSubDark/80 border border-borderDark/80 rounded-xl p-3">
+        <!-- 2 Big Metric Cards -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="bg-cardSubDark/90 border border-borderDark rounded-2xl p-3">
             <span class="text-[11px] text-gray-400 block font-medium">Сума за період</span>
             <div class="flex items-baseline space-x-1 mt-0.5">
-              <span id="statPeriodSum" class="text-xl font-extrabold text-white font-mono">₴ 4 380</span>
+              <span id="statPeriodSum" class="text-xl font-black text-white font-mono">₴ 4 155</span>
             </div>
-            <div class="text-[10px] text-gray-400 mt-1 flex justify-between font-mono">
-              <span id="statSubGas">Газ: ₴3 630</span>
-              <span id="statSubPetrol">Бенз: ₴750</span>
+            <div class="text-[10px] text-gray-400 mt-1 flex items-center justify-between font-mono pt-1 border-t border-borderDark/40">
+              <span id="statSubGas" class="text-brandGreen font-medium">Газ: ₴3 565</span>
+              <span id="statSubPetrol" class="text-amber-400 font-medium">Бенз: ₴590</span>
             </div>
           </div>
 
-          <div class="bg-cardSubDark/80 border border-borderDark/80 rounded-xl p-3">
+          <div class="bg-cardSubDark/90 border border-borderDark rounded-2xl p-3">
             <span class="text-[11px] text-gray-400 block font-medium">Змішана ціна 1 км</span>
             <div class="flex items-baseline space-x-1 mt-0.5">
-              <span id="statCostPerKm" class="text-xl font-extrabold text-brandGreen font-mono">₴ 3.99</span>
-              <span class="text-xs text-gray-400">/ км</span>
+              <span id="statCostPerKm" class="text-xl font-black text-brandGreen font-mono">₴ 4.16</span>
+              <span class="text-[11px] text-gray-400">/км</span>
             </div>
-            <span class="text-[10px] text-gray-400 mt-1 block">з урахуванням бензину</span>
+            <span class="text-[10px] text-gray-400 mt-1 block truncate">з бензином на прогрів</span>
           </div>
         </div>
 
-        <!-- Fuel Breakdown Meters -->
-        <div class="space-y-2.5 pt-1">
-          <!-- Gas Consumption -->
-          <div class="bg-cardSubDark/50 p-2.5 rounded-xl border border-borderDark/40">
-            <div class="flex justify-between items-center text-xs">
-              <span class="flex items-center space-x-1.5 font-medium text-gray-300">
-                <span class="w-2 h-2 rounded-full bg-brandGreen"></span>
-                <span>Газ (LPG) — основний рух</span>
-              </span>
-              <span id="statGasConsumption" class="font-bold text-brandGreen font-mono text-sm">8.2 л / 100км</span>
+        <!-- Fuel Breakdown Strips -->
+        <div class="space-y-2 pt-0.5">
+          <div class="bg-cardSubDark/60 p-3 rounded-2xl border border-borderDark/50">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center space-x-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-brandGreen shadow-sm shadow-brandGreen/50"></span>
+                <span class="text-xs font-bold text-gray-200">Газ (LPG) • основний рух</span>
+              </div>
+              <span id="statGasConsumption" class="font-extrabold text-brandGreen font-mono text-sm whitespace-nowrap">9.1 л / 100км</span>
             </div>
-            <div class="flex justify-between items-center text-[10px] text-gray-400 mt-1 font-mono">
-              <span id="statGasVolume">Об'єм: 90.0 л</span>
-              <span id="statGasPriceAvg">Сер. ціна: ₴40.3/л</span>
+            <div class="flex justify-between items-center text-[11px] text-gray-400 mt-1.5 font-mono">
+              <span id="statGasVolume">Об'єм: 91.3 л</span>
+              <span id="statGasPriceAvg">Сер. ціна: ₴39.0/л</span>
             </div>
           </div>
 
-          <!-- Petrol Consumption (Warm-up) -->
-          <div class="bg-cardSubDark/50 p-2.5 rounded-xl border border-borderDark/40">
-            <div class="flex justify-between items-center text-xs">
-              <span class="flex items-center space-x-1.5 font-medium text-gray-300">
-                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-                <span>Бензин А-95 — прогріви та старти</span>
-              </span>
-              <span id="statPetrolConsumption" class="font-bold text-amber-400 font-mono text-sm">1.1 л / 100км</span>
+          <div class="bg-cardSubDark/60 p-3 rounded-2xl border border-borderDark/50">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center space-x-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-sm shadow-amber-400/50"></span>
+                <span class="text-xs font-bold text-gray-200">Бензин А-95 • прогріви</span>
+              </div>
+              <span id="statPetrolConsumption" class="font-extrabold text-amber-400 font-mono text-sm whitespace-nowrap">1.0 л / 100км</span>
             </div>
-            <div class="flex justify-between items-center text-[10px] text-gray-400 mt-1 font-mono">
-              <span id="statPetrolVolume">Об'єм: 12.5 л</span>
+            <div class="flex justify-between items-center text-[11px] text-gray-400 mt-1.5 font-mono">
+              <span id="statPetrolVolume">Об'єм: 10.0 л</span>
               <span id="statPetrolPriceAvg">Сер. ціна: ₴59.0/л</span>
             </div>
           </div>
 
-          <!-- Mixed Equivalent -->
-          <div class="p-2 rounded-lg bg-black/40 border border-borderDark/60 flex items-center justify-between text-xs font-medium">
-            <span class="text-gray-300">Разом собівартість на 100 км:</span>
-            <span id="statCombined100km" class="font-mono font-bold text-white text-sm">₴ 399 / 100км</span>
+          <div class="py-2 px-3 rounded-xl bg-black/50 border border-borderDark/70 flex items-center justify-between text-xs font-semibold">
+            <span class="text-gray-300">Чесна собівартість на 100 км:</span>
+            <span id="statCombined100km" class="font-mono font-black text-white text-sm">₴ 416 / 100км</span>
           </div>
         </div>
       </div>
 
-      <!-- Quick Action Buttons -->
+      <!-- 3. QUICK ACTION BUTTONS -->
       <div class="grid grid-cols-4 gap-2">
-        <button onclick="openModal('fuel')" class="p-3 rounded-xl bg-cardDark border border-borderDark text-center active:bg-cardSubDark transition">
-          <div class="text-lg mb-1">⛽</div>
-          <span class="text-xs text-gray-300">Заправка</span>
+        <button onclick="openModal('fuel')" class="p-3 rounded-2xl bg-cardDark border border-borderDark text-center tap-press">
+          <div class="text-xl mb-1">⛽</div>
+          <span class="text-xs text-gray-200 font-medium">Заправка</span>
         </button>
-        <button onclick="openModal('service')" class="p-3 rounded-xl bg-cardDark border border-borderDark text-center active:bg-cardSubDark transition">
-          <div class="text-lg mb-1">🔧</div>
-          <span class="text-xs text-gray-300">Сервіс</span>
+        <button onclick="openModal('service')" class="p-3 rounded-2xl bg-cardDark border border-borderDark text-center tap-press">
+          <div class="text-xl mb-1">🔧</div>
+          <span class="text-xs text-gray-200 font-medium">Сервіс</span>
         </button>
-        <button onclick="switchTab('tabService')" class="p-3 rounded-xl bg-cardDark border border-borderDark text-center active:bg-cardSubDark transition">
-          <div class="text-lg mb-1">📋</div>
-          <span class="text-xs text-gray-300">План ТО</span>
+        <button onclick="switchTab('tabService')" class="p-3 rounded-2xl bg-cardDark border border-borderDark text-center tap-press">
+          <div class="text-xl mb-1">📋</div>
+          <span class="text-xs text-gray-200 font-medium">План ТО</span>
         </button>
-        <button onclick="switchTab('tabReports')" class="p-3 rounded-xl bg-cardDark border border-borderDark text-center active:bg-cardSubDark transition">
-          <div class="text-lg mb-1">📊</div>
-          <span class="text-xs text-gray-300">Звіт</span>
+        <button onclick="switchTab('tabReports')" class="p-3 rounded-2xl bg-cardDark border border-borderDark text-center tap-press">
+          <div class="text-xl mb-1">📊</div>
+          <span class="text-xs text-gray-200 font-medium">Звіт</span>
         </button>
       </div>
 
-      <!-- MAINTENANCE REMINDER QUICK GLANCE -->
-      <div class="bg-cardDark border border-borderDark rounded-2xl p-4 space-y-3">
+      <!-- 4. MAINTENANCE COUNTDOWN -->
+      <div class="bg-cardDark border border-borderDark rounded-3xl p-4 space-y-3">
         <div class="flex items-center justify-between">
-          <h3 class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Найближчі заміни розхідників</h3>
-          <button onclick="switchTab('tabService')" class="text-xs text-brandGreen hover:underline font-medium">Усі →</button>
+          <h3 class="text-xs font-bold text-gray-300 uppercase tracking-wider">Залишок до ТО</h3>
+          <button onclick="switchTab('tabService')" class="text-xs text-brandGreen font-semibold hover:underline">Усі розхідники →</button>
         </div>
 
         <div class="grid grid-cols-2 gap-2.5">
-          <div class="bg-cardSubDark p-3 rounded-xl border border-borderDark/60">
-            <span class="text-[11px] text-gray-400 block">Олива двигуна</span>
-            <span id="quickOilKm" class="text-base font-bold text-amber-400 font-mono mt-0.5 block">5 490 км</span>
-            <span class="text-[10px] text-gray-400 block font-mono">W712/94 (Mann)</span>
+          <div class="bg-cardSubDark/90 p-3 rounded-2xl border border-borderDark/60">
+            <span class="text-[11px] text-gray-400 block font-medium">Олива двигуна</span>
+            <span id="quickOilKm" class="text-lg font-black text-amber-400 font-mono mt-0.5 block">5 490 км</span>
+            <span class="text-[10px] text-gray-400 block font-mono">Mann W712/94</span>
           </div>
 
-          <div class="bg-cardSubDark p-3 rounded-xl border border-borderDark/60">
-            <span class="text-[11px] text-gray-400 block">Фільтри ГБО (паровий/рідкий)</span>
-            <span id="quickLpgKm" class="text-base font-bold text-brandGreen font-mono mt-0.5 block">5 490 км</span>
-            <span class="text-[10px] text-gray-400 block font-mono">KN-279 / Tomasetto</span>
+          <div class="bg-cardSubDark/90 p-3 rounded-2xl border border-borderDark/60">
+            <span class="text-[11px] text-gray-400 block font-medium">Фільтри ГБО</span>
+            <span id="quickLpgKm" class="text-lg font-black text-brandGreen font-mono mt-0.5 block">5 490 км</span>
+            <span class="text-[10px] text-gray-400 block font-mono">KN-279 / RGAT</span>
           </div>
         </div>
       </div>
 
-      <!-- RECENT ENTRIES LIST -->
+      <!-- 5. RECENT LOGS PREVIEW -->
       <div class="space-y-2">
         <div class="flex justify-between items-center px-1">
-          <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Останні операції</span>
-          <button onclick="switchTab('tabHistory')" class="text-xs text-brandGreen font-medium">Історія →</button>
+          <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Останні заправки</span>
+          <button onclick="switchTab('tabHistory')" class="text-xs text-brandGreen font-semibold">Вся історія →</button>
         </div>
         <div id="previewList" class="space-y-2"></div>
       </div>
 
     </section>
 
-    <!-- TAB 2: HISTORY -->
-    <section id="tabHistory" class="space-y-3 hidden">
+    <!-- TAB 2: HISTORY (FULL LIST) -->
+    <section id="tabHistory" class="tab-content space-y-3 hidden">
       <div class="flex items-center justify-between">
-        <h2 class="text-base font-bold">Історія записів</h2>
-        <div class="flex space-x-1 bg-cardSubDark p-1 rounded-lg border border-borderDark">
-          <button onclick="filterRecords('all')" id="fltAll" class="px-2.5 py-1 text-xs rounded bg-brandGreen text-black font-semibold">Всі</button>
-          <button onclick="filterRecords('LPG')" id="fltLpg" class="px-2.5 py-1 text-xs rounded text-gray-400">Газ</button>
-          <button onclick="filterRecords('Petrol')" id="fltPetrol" class="px-2.5 py-1 text-xs rounded text-gray-400">Бензин</button>
-          <button onclick="filterRecords('service')" id="fltServ" class="px-2.5 py-1 text-xs rounded text-gray-400">Сервіс</button>
+        <h2 class="text-base font-extrabold text-white">Історія записів</h2>
+        <div class="flex space-x-1 bg-cardSubDark p-1 rounded-xl border border-borderDark">
+          <button onclick="filterRecords('all')" id="fltAll" class="px-2.5 py-1 text-xs rounded-lg bg-brandGreen text-black font-bold">Всі</button>
+          <button onclick="filterRecords('LPG')" id="fltLpg" class="px-2.5 py-1 text-xs rounded-lg text-gray-400">Газ</button>
+          <button onclick="filterRecords('Petrol')" id="fltPetrol" class="px-2.5 py-1 text-xs rounded-lg text-gray-400">Бенз</button>
+          <button onclick="filterRecords('service')" id="fltServ" class="px-2.5 py-1 text-xs rounded-lg text-gray-400">ТО</button>
         </div>
       </div>
       <div id="fullList" class="space-y-2"></div>
     </section>
 
-    <!-- TAB 3: REPORTS & CHARTS -->
-    <section id="tabReports" class="space-y-4 hidden">
-      <div class="bg-cardDark border border-borderDark rounded-2xl p-4 space-y-2">
+    <!-- TAB 3: REPORTS (CHARTS) -->
+    <section id="tabReports" class="tab-content space-y-4 hidden">
+      <div class="bg-cardDark border border-borderDark rounded-3xl p-4 space-y-3">
         <div class="flex justify-between items-center">
-          <h3 class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Витрати за місяцями (грн)</h3>
+          <h3 class="text-xs font-bold text-gray-300 uppercase tracking-wider">Витрати за місяцями (грн)</h3>
           <span class="text-[11px] text-gray-400 font-mono">2026</span>
         </div>
         <div class="h-44"><canvas id="barChart"></canvas></div>
       </div>
 
-      <div class="bg-cardDark border border-borderDark rounded-2xl p-4 space-y-2">
+      <div class="bg-cardDark border border-borderDark rounded-3xl p-4 space-y-3">
         <div class="flex justify-between items-center">
-          <h3 class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Динаміка витрати газу (л/100км)</h3>
-          <span class="text-[11px] text-brandGreen font-mono">останні заправки</span>
+          <h3 class="text-xs font-bold text-gray-300 uppercase tracking-wider">Динаміка витрати газу (л/100км)</h3>
+          <span class="text-[11px] text-brandGreen font-mono">останні баки</span>
         </div>
         <div class="h-44"><canvas id="lineChart"></canvas></div>
       </div>
+
+      <!-- ALBANIA ROAD TRIP CARD -->
+      <div class="bg-cardDark border border-borderDark rounded-3xl p-4 space-y-2.5 shadow-lg">
+        <div class="flex items-center justify-between">
+          <h4 class="text-sm font-extrabold text-white flex items-center space-x-1.5">
+            <span>🇦🇱 Подорож: Львів — Вльора</span>
+          </h4>
+          <span class="text-[11px] bg-brandGreen/15 text-brandGreen px-2 py-0.5 rounded-full font-mono font-bold">1 811 км</span>
+        </div>
+        <p class="text-xs text-gray-400">Зафіксовано 7 заправок. Витрата газу: по трасі 7.2–8.1 л/100км, у гірській місцевості 8.4–8.5 л/100км.</p>
+        <div class="grid grid-cols-3 gap-2 pt-2 border-t border-borderDark/60 text-center font-mono">
+          <div class="bg-cardSubDark p-2 rounded-xl">
+            <span class="text-[10px] text-gray-400 block">Пройдено</span>
+            <span class="text-xs font-bold text-white">1 811 км</span>
+          </div>
+          <div class="bg-cardSubDark p-2 rounded-xl">
+            <span class="text-[10px] text-gray-400 block">Газ (об'єм)</span>
+            <span class="text-xs font-bold text-brandGreen">164.3 л</span>
+          </div>
+          <div class="bg-cardSubDark p-2 rounded-xl">
+            <span class="text-[10px] text-gray-400 block">Витрати</span>
+            <span class="text-xs font-bold text-white">₴ 6 622</span>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <!-- TAB 4: SERVICE -->
-    <section id="tabService" class="space-y-3 hidden">
+    <!-- TAB 4: SERVICE (MAINTENANCE) -->
+    <section id="tabService" class="tab-content space-y-3 hidden">
       <div class="flex justify-between items-center">
         <div>
-          <h2 class="text-base font-bold">Регламентні ТО та розхідники</h2>
-          <p class="text-xs text-gray-400">Skoda Fabia 1.4 (LPG)</p>
+          <h2 class="text-base font-extrabold text-white">Регламентні ТО</h2>
+          <p class="text-xs text-gray-400 font-mono">Skoda Fabia 1.4 (Бензин + LPG)</p>
         </div>
-        <button onclick="openModal('service')" class="px-2.5 py-1.5 bg-brandGreen/20 border border-brandGreen text-brandGreen text-xs rounded-xl font-bold">+ Додати</button>
+        <button onclick="openModal('service')" class="px-3 py-1.5 bg-brandGreen/15 border border-brandGreen/40 text-brandGreen text-xs rounded-xl font-bold tap-press">+ Додати ТО</button>
       </div>
       <div id="serviceList" class="space-y-2.5"></div>
     </section>
 
   </main>
 
-  <!-- BOTTOM NAVIGATION -->
-  <nav class="fixed bottom-0 left-0 right-0 z-30 bg-bgDark/95 backdrop-blur-md border-t border-borderDark py-2 safe-bottom">
+  <!-- BOTTOM NAVIGATION BAR -->
+  <nav class="fixed bottom-0 left-0 right-0 z-40 bg-[#0a0a0c]/90 backdrop-blur-xl border-t border-borderDark pt-2 nav-safe">
     <div class="max-w-md mx-auto grid grid-cols-4 text-center">
-      <button onclick="switchTab('tabGarage')" id="btn-tabGarage" class="py-1 text-brandGreen text-xs flex flex-col items-center">
-        <span class="text-base">🚗</span>
-        <span class="text-[10px] mt-0.5 font-medium">Гараж</span>
+      <button onclick="switchTab('tabGarage')" id="btn-tabGarage" class="py-1 text-brandGreen text-xs flex flex-col items-center tap-press">
+        <span class="text-lg">🚗</span>
+        <span class="text-[10px] mt-0.5 font-bold">Гараж</span>
       </button>
-      <button onclick="switchTab('tabHistory')" id="btn-tabHistory" class="py-1 text-gray-400 text-xs flex flex-col items-center">
-        <span class="text-base">📋</span>
+      <button onclick="switchTab('tabHistory')" id="btn-tabHistory" class="py-1 text-gray-400 text-xs flex flex-col items-center tap-press">
+        <span class="text-lg">📋</span>
         <span class="text-[10px] mt-0.5 font-medium">Історія</span>
       </button>
-      <button onclick="switchTab('tabReports')" id="btn-tabReports" class="py-1 text-gray-400 text-xs flex flex-col items-center">
-        <span class="text-base">📊</span>
+      <button onclick="switchTab('tabReports')" id="btn-tabReports" class="py-1 text-gray-400 text-xs flex flex-col items-center tap-press">
+        <span class="text-lg">📊</span>
         <span class="text-[10px] mt-0.5 font-medium">Звіт</span>
       </button>
-      <button onclick="switchTab('tabService')" id="btn-tabService" class="py-1 text-gray-400 text-xs flex flex-col items-center">
-        <span class="text-base">🛠️</span>
+      <button onclick="switchTab('tabService')" id="btn-tabService" class="py-1 text-gray-400 text-xs flex flex-col items-center tap-press">
+        <span class="text-lg">🛠️</span>
         <span class="text-[10px] mt-0.5 font-medium">Сервіс</span>
       </button>
     </div>
   </nav>
 
-  <!-- MODAL: ADD ENTRY -->
-  <div id="modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 hidden">
-    <div class="bg-cardDark border border-borderDark rounded-t-3xl sm:rounded-2xl p-5 max-w-md w-full space-y-4 max-h-[90vh] overflow-y-auto hide-scrollbar">
+  <!-- MODAL BOTTOM SHEET -->
+  <div id="modalOverlay" onclick="closeModal()" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm transition-opacity duration-200 hidden opacity-0"></div>
+
+  <div id="modalSheet" class="fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto modal-sheet closed">
+    <div class="bg-cardDark border-t border-x border-borderDark rounded-t-3xl p-5 space-y-4 max-h-[85vh] overflow-y-auto hide-scrollbar shadow-2xl pb-8">
       
       <div class="flex justify-between items-center border-b border-borderDark/60 pb-3">
-        <h3 id="modalHeading" class="text-base font-bold text-white">Новий запис</h3>
-        <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-cardSubDark text-gray-300 flex items-center justify-center font-bold">✕</button>
+        <div class="flex items-center space-x-2">
+          <h3 id="modalHeading" class="text-base font-extrabold text-white">Нова заправка</h3>
+          <span class="text-xs text-gray-400 font-mono">Fabia 1.4</span>
+        </div>
+        <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-cardSubDark text-gray-300 flex items-center justify-center font-bold tap-press">✕</button>
       </div>
 
       <!-- Toggle Fuel / Service -->
-      <div class="grid grid-cols-2 gap-2 bg-cardSubDark p-1 rounded-xl border border-borderDark">
-        <button id="modalBtnFuel" onclick="selectModalCategory('fuel')" class="py-2 text-xs font-semibold rounded-lg bg-brandGreen text-black transition">
+      <div class="grid grid-cols-2 gap-2 bg-cardSubDark p-1 rounded-2xl border border-borderDark">
+        <button id="modalBtnFuel" onclick="selectModalCategory('fuel')" class="py-2 text-xs font-bold rounded-xl bg-brandGreen text-black transition">
           ⛽ Заправка
         </button>
-        <button id="modalBtnService" onclick="selectModalCategory('service')" class="py-2 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition">
+        <button id="modalBtnService" onclick="selectModalCategory('service')" class="py-2 text-xs font-bold rounded-xl text-gray-400 hover:text-white transition">
           🔧 Сервіс / ТО
         </button>
       </div>
 
-      <!-- FORM FUEL -->
-      <form id="formFuel" onsubmit="saveFuel(event)" class="space-y-3">
+      <!-- FUEL FORM -->
+      <form id="formFuel" onsubmit="saveFuel(event)" class="space-y-3.5">
         <div>
-          <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">Вид палива</label>
+          <label class="text-[11px] text-gray-400 block mb-1.5 uppercase tracking-wider font-semibold">Вид палива</label>
           <div class="grid grid-cols-2 gap-2">
-            <button type="button" onclick="setModalFuel('LPG')" id="mFuelLpg" class="py-2 text-xs font-bold rounded-lg bg-brandGreen/20 border border-brandGreen text-brandGreen">
+            <button type="button" onclick="setModalFuel('LPG')" id="mFuelLpg" class="py-2.5 text-xs font-bold rounded-xl bg-brandGreen/20 border border-brandGreen text-brandGreen tap-press">
               Газ (LPG)
             </button>
-            <button type="button" onclick="setModalFuel('Petrol')" id="mFuelPetrol" class="py-2 text-xs font-bold rounded-lg bg-cardSubDark border border-borderDark text-gray-400">
-              Бензин А-95 (прогрів)
+            <button type="button" onclick="setModalFuel('Petrol')" id="mFuelPetrol" class="py-2.5 text-xs font-bold rounded-xl bg-cardSubDark border border-borderDark text-gray-400 tap-press">
+              Бензин (прогрів)
             </button>
           </div>
         </div>
 
         <div>
           <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">Поточний одометр (км)</label>
-          <input type="number" id="inpOdo" required class="w-full bg-cardSubDark border border-borderDark rounded-xl px-3 py-2.5 text-white font-mono text-base focus:border-brandGreen focus:outline-none">
+          <input type="number" id="inpOdo" required class="w-full bg-cardSubDark border border-borderDark rounded-2xl px-3.5 py-3 text-white font-mono text-base focus:border-brandGreen focus:outline-none">
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">Об'єм (л)</label>
-            <input type="number" id="inpLit" step="0.01" required class="w-full bg-cardSubDark border border-borderDark rounded-xl px-3 py-2.5 text-white font-mono text-base focus:border-brandGreen focus:outline-none" placeholder="25.0">
+            <input type="number" id="inpLit" step="0.01" required class="w-full bg-cardSubDark border border-borderDark rounded-2xl px-3.5 py-3 text-white font-mono text-base focus:border-brandGreen focus:outline-none" placeholder="25.0">
           </div>
           <div>
             <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">Сума (грн)</label>
-            <input type="number" id="inpSum" step="1" required class="w-full bg-cardSubDark border border-borderDark rounded-xl px-3 py-2.5 text-white font-mono text-base focus:border-brandGreen focus:outline-none" placeholder="1000">
+            <input type="number" id="inpSum" step="1" required class="w-full bg-cardSubDark border border-borderDark rounded-2xl px-3.5 py-3 text-white font-mono text-base focus:border-brandGreen focus:outline-none" placeholder="1000">
           </div>
         </div>
 
@@ -363,7 +426,7 @@
           </label>
           <div class="flex items-center space-x-1.5 text-xs text-gray-400">
             <span>Валюта:</span>
-            <select id="inpCurr" class="bg-cardSubDark text-white border border-borderDark rounded-lg px-2 py-1">
+            <select id="inpCurr" class="bg-cardSubDark text-white border border-borderDark rounded-xl px-2.5 py-1.5 font-mono">
               <option value="UAH">UAH ₴</option>
               <option value="EUR">EUR €</option>
               <option value="USD">USD $</option>
@@ -372,21 +435,21 @@
         </div>
 
         <div>
-          <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">Нотатки / АЗС</label>
-          <input type="text" id="inpNotes" placeholder="WOG, ОККО, прогрів..." class="w-full bg-cardSubDark border border-borderDark rounded-xl px-3 py-2 text-xs text-white focus:border-brandGreen focus:outline-none">
+          <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">АЗС / Нотатки</label>
+          <input type="text" id="inpNotes" placeholder="WOG, ОККО, прогрів..." class="w-full bg-cardSubDark border border-borderDark rounded-2xl px-3.5 py-2.5 text-xs text-white focus:border-brandGreen focus:outline-none">
         </div>
 
-        <button type="submit" class="w-full py-3 bg-brandGreen text-black font-extrabold rounded-xl text-sm shadow-lg shadow-brandGreen/25 active:scale-95 transition">
+        <button type="submit" class="w-full py-3.5 bg-brandGreen text-black font-black rounded-2xl text-sm shadow-lg shadow-brandGreen/25 tap-press">
           Зберегти заправку
         </button>
       </form>
 
-      <!-- FORM SERVICE -->
-      <form id="formService" onsubmit="saveService(event)" class="space-y-3 hidden">
+      <!-- SERVICE FORM -->
+      <form id="formService" onsubmit="saveService(event)" class="space-y-3.5 hidden">
         <div>
           <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">Вузол</label>
-          <select id="sNode" class="w-full bg-cardSubDark border border-borderDark rounded-xl px-3 py-2 text-xs text-white">
-            <option value="ГБО">ГБО</option>
+          <select id="sNode" class="w-full bg-cardSubDark border border-borderDark rounded-2xl px-3.5 py-2.5 text-xs text-white">
+            <option value="ГБО">ГБО (Фільтри / Редуктор)</option>
             <option value="Двигун">Двигун (Олива / Свічки / ГРМ)</option>
             <option value="Охолодження">Охолодження (Термостат / Патрубки)</option>
             <option value="Гальма">Гальма</option>
@@ -395,19 +458,19 @@
         </div>
         <div>
           <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">Назва роботи</label>
-          <input type="text" id="sName" required placeholder="Заміна фільтрів ГБО..." class="w-full bg-cardSubDark border border-borderDark rounded-xl px-3 py-2 text-xs text-white">
+          <input type="text" id="sName" required placeholder="Заміна фільтрів ГБО..." class="w-full bg-cardSubDark border border-borderDark rounded-2xl px-3.5 py-2.5 text-xs text-white">
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">OEM / Артикул</label>
-            <input type="text" id="sOem" placeholder="KN-279" class="w-full bg-cardSubDark border border-borderDark rounded-xl px-3 py-2 text-xs text-white font-mono">
+            <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">OEM-номер</label>
+            <input type="text" id="sOem" placeholder="KN-279" class="w-full bg-cardSubDark border border-borderDark rounded-2xl px-3.5 py-2.5 text-xs text-white font-mono">
           </div>
           <div>
             <label class="text-[11px] text-gray-400 block mb-1 uppercase tracking-wider font-semibold">Вартість (грн)</label>
-            <input type="number" id="sCost" required placeholder="350" class="w-full bg-cardSubDark border border-borderDark rounded-xl px-3 py-2 text-xs text-white font-mono">
+            <input type="number" id="sCost" required placeholder="350" class="w-full bg-cardSubDark border border-borderDark rounded-2xl px-3.5 py-2.5 text-xs text-white font-mono">
           </div>
         </div>
-        <button type="submit" class="w-full py-3 bg-blue-500 text-white font-extrabold rounded-xl text-sm shadow-lg shadow-blue-500/25 active:scale-95 transition">
+        <button type="submit" class="w-full py-3.5 bg-blue-500 text-white font-black rounded-2xl text-sm shadow-lg shadow-blue-500/25 tap-press">
           Зберегти ТО
         </button>
       </form>
@@ -417,7 +480,7 @@
 
   <script>
     const DEFAULT_RECORDS = [
-      { id: 1, date: "2026-08-15 10:00", type: "fuel", fuel: "Petrol", liters: 15.0, cost: 885, odo: 282400, full: false, cons: null, notes: "Бензин на прогріви (ОККО)" },
+      { id: 1, date: "2026-08-15 10:00", type: "fuel", fuel: "Petrol", liters: 10.0, cost: 590, odo: 282400, full: false, cons: null, notes: "Бензин на прогріви (ОККО)" },
       { id: 2, date: "2026-08-27 16:53", type: "fuel", fuel: "LPG", liters: 21.3, cost: 787, odo: 282699, full: true, cons: 7.3, notes: "Поїздка в Албанію" },
       { id: 3, date: "2026-08-27 23:05", type: "fuel", fuel: "LPG", liters: 21.8, cost: 745, odo: 282996, full: true, cons: 7.2, notes: "Автобан (€14)" },
       { id: 4, date: "2026-08-28 07:13", type: "fuel", fuel: "LPG", liters: 29.9, cost: 1525, odo: 283413, full: true, cons: 8.1, notes: "Траса" },
@@ -435,14 +498,14 @@
       { name: "Ремінь ГРМ і помпа", oem: "Gates KP15565XS-1", interval: 60000, last: 250500, node: "Двигун" }
     ];
 
-    let records = JSON.parse(localStorage.getItem("fabia_records_v2")) || DEFAULT_RECORDS;
-    let services = JSON.parse(localStorage.getItem("fabia_services_v2")) || DEFAULT_SERVICES;
+    let records = JSON.parse(localStorage.getItem("fabia_records_v3")) || DEFAULT_RECORDS;
+    let services = JSON.parse(localStorage.getItem("fabia_services_v3")) || DEFAULT_SERVICES;
     let periodFilter = '1k';
     let currentModalFuel = 'LPG';
 
     function saveState() {
-      localStorage.setItem("fabia_records_v2", JSON.stringify(records));
-      localStorage.setItem("fabia_services_v2", JSON.stringify(services));
+      localStorage.setItem("fabia_records_v3", JSON.stringify(records));
+      localStorage.setItem("fabia_services_v3", JSON.stringify(services));
       render();
     }
 
@@ -451,9 +514,9 @@
       ['1k', 'month', 'all'].forEach(k => {
         const btn = document.getElementById('btnFilter' + k.charAt(0).toUpperCase() + k.slice(1));
         if (k === f) {
-          btn.className = "py-1.5 text-xs font-semibold rounded-lg bg-brandGreen text-black transition";
+          btn.className = "py-1.5 text-xs font-bold rounded-lg bg-brandGreen text-black tap-press transition-all";
         } else {
-          btn.className = "py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition";
+          btn.className = "py-1.5 text-xs font-bold rounded-lg text-gray-400 hover:text-white tap-press transition-all";
         }
       });
       render();
@@ -478,9 +541,9 @@
         distanceCovered = Math.max(latestOdo - minOdo, 1000);
         document.getElementById('periodBadge').innerText = "Останні 1 000 км";
       } else if (periodFilter === 'month') {
-        const now = new Date("2026-09-03T14:40:00");
+        const now = new Date("2026-09-03T15:00:00");
         const monthAgo = new Date(now.getTime() - 30 * 24 * 3600 * 1000);
-        filteredRecs = fuelRecs.filter(r => new Date(r.date) >= monthAgo);
+        filteredRecs = fuelRecs.filter(r => new Date(r.date.replace(' ', 'T')) >= monthAgo);
         const minOdo = filteredRecs.length > 0 ? filteredRecs[0].odo : latestOdo;
         distanceCovered = Math.max(latestOdo - minOdo, 1);
         document.getElementById('periodBadge').innerText = "Останні 30 днів";
@@ -512,9 +575,9 @@
       }
 
       const totalPeriodSum = sumLpgCost + sumPetCost;
-      const lpgConsPer100 = distanceCovered > 0 ? ((sumLpgLit / distanceCovered) * 100).toFixed(1) : "8.2";
-      const petConsPer100 = distanceCovered > 0 ? ((sumPetLit / distanceCovered) * 100).toFixed(1) : "1.1";
-      const mixedCostKm = distanceCovered > 0 ? (totalPeriodSum / distanceCovered).toFixed(2) : "3.99";
+      const lpgConsPer100 = distanceCovered > 0 ? ((sumLpgLit / distanceCovered) * 100).toFixed(1) : "9.1";
+      const petConsPer100 = distanceCovered > 0 ? ((sumPetLit / distanceCovered) * 100).toFixed(1) : "1.0";
+      const mixedCostKm = distanceCovered > 0 ? (totalPeriodSum / distanceCovered).toFixed(2) : "4.16";
       const mixedCost100 = (parseFloat(mixedCostKm) * 100).toFixed(0);
 
       document.getElementById('statPeriodSum').innerText = `₴ ${totalPeriodSum.toLocaleString('uk-UA')}`;
@@ -524,7 +587,7 @@
       
       document.getElementById('statGasConsumption').innerText = `${lpgConsPer100} л / 100км`;
       document.getElementById('statGasVolume').innerText = `Об'єм: ${sumLpgLit.toFixed(1)} л`;
-      const avgGasPrice = sumLpgLit > 0 ? (sumLpgCost / sumLpgLit).toFixed(1) : "40.3";
+      const avgGasPrice = sumLpgLit > 0 ? (sumLpgCost / sumLpgLit).toFixed(1) : "39.0";
       document.getElementById('statGasPriceAvg').innerText = `Сер. ціна: ₴${avgGasPrice}/л`;
 
       document.getElementById('statPetrolConsumption').innerText = `${petConsPer100} л / 100км`;
@@ -552,9 +615,9 @@
       let badge = isLpg ? `${r.liters} л` : (isPetrol ? `${r.liters} л` : r.oem);
 
       return `
-        <div class="bg-cardDark border border-borderDark rounded-xl p-3 flex justify-between items-center">
-          <div class="flex items-center space-x-2.5">
-            <div class="w-9 h-9 rounded-xl bg-cardSubDark border border-borderDark flex items-center justify-center text-base">
+        <div class="bg-cardDark border border-borderDark rounded-2xl p-3.5 flex justify-between items-center tap-press transition">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-cardSubDark border border-borderDark flex items-center justify-center text-lg">
               ${icon}
             </div>
             <div>
@@ -566,7 +629,7 @@
             </div>
           </div>
           <div class="text-right">
-            <div class="text-sm font-bold text-white font-mono">₴ ${r.cost.toLocaleString('uk-UA')}</div>
+            <div class="text-sm font-black text-white font-mono">₴ ${r.cost.toLocaleString('uk-UA')}</div>
             ${r.cons ? `<div class="text-[11px] font-bold text-brandGreen font-mono">${r.cons} л/100км</div>` : ''}
           </div>
         </div>
@@ -580,20 +643,20 @@
     function filterRecords(type) {
       ['All', 'Lpg', 'Petrol', 'Serv'].forEach(k => {
         const b = document.getElementById('flt' + k);
-        b.className = "px-2.5 py-1 text-xs rounded text-gray-400";
+        b.className = "px-2.5 py-1 text-xs rounded-lg text-gray-400";
       });
 
       if (type === 'all') {
-        document.getElementById('fltAll').className = "px-2.5 py-1 text-xs rounded bg-brandGreen text-black font-semibold";
+        document.getElementById('fltAll').className = "px-2.5 py-1 text-xs rounded-lg bg-brandGreen text-black font-bold";
         renderHistoryList(records);
       } else if (type === 'LPG') {
-        document.getElementById('fltLpg').className = "px-2.5 py-1 text-xs rounded bg-brandGreen text-black font-semibold";
+        document.getElementById('fltLpg').className = "px-2.5 py-1 text-xs rounded-lg bg-brandGreen text-black font-bold";
         renderHistoryList(records.filter(r => r.fuel === 'LPG'));
       } else if (type === 'Petrol') {
-        document.getElementById('fltPetrol').className = "px-2.5 py-1 text-xs rounded bg-amber-400 text-black font-semibold";
+        document.getElementById('fltPetrol').className = "px-2.5 py-1 text-xs rounded-lg bg-amber-400 text-black font-bold";
         renderHistoryList(records.filter(r => r.fuel === 'Petrol'));
       } else {
-        document.getElementById('fltServ').className = "px-2.5 py-1 text-xs rounded bg-blue-500 text-white font-semibold";
+        document.getElementById('fltServ').className = "px-2.5 py-1 text-xs rounded-lg bg-blue-500 text-white font-bold";
         renderHistoryList(records.filter(r => r.type === 'service'));
       }
     }
@@ -606,22 +669,22 @@
         const urgent = left <= 1000;
 
         return `
-          <div class="bg-cardDark border border-borderDark rounded-xl p-3.5 space-y-2">
+          <div class="bg-cardDark border border-borderDark rounded-2xl p-4 space-y-2.5">
             <div class="flex justify-between items-start">
               <div>
-                <span class="text-[10px] bg-cardSubDark text-gray-400 px-1.5 py-0.5 rounded font-mono uppercase">${s.node}</span>
-                <h4 class="text-xs font-bold text-white mt-1">${s.name}</h4>
+                <span class="text-[10px] bg-cardSubDark text-gray-400 px-2 py-0.5 rounded-md font-mono uppercase font-bold">${s.node}</span>
+                <h4 class="text-xs font-bold text-white mt-1.5">${s.name}</h4>
                 <p class="text-[11px] text-gray-400 font-mono">OEM: ${s.oem}</p>
               </div>
               <div class="text-right">
-                <span class="text-xs font-bold ${urgent ? 'text-rose-400' : 'text-amber-400'} font-mono">${left.toLocaleString('uk-UA')} км</span>
-                <span class="text-[10px] text-gray-400 block">залишок</span>
+                <span class="text-xs font-black ${urgent ? 'text-rose-400' : 'text-amber-400'} font-mono">${left.toLocaleString('uk-UA')} км</span>
+                <span class="text-[10px] text-gray-400 block font-medium">залишок</span>
               </div>
             </div>
             <div class="w-full bg-cardSubDark rounded-full h-1.5 overflow-hidden">
-              <div class="h-1.5 ${urgent ? 'bg-rose-500' : 'bg-amber-400'}" style="width: ${pct}%"></div>
+              <div class="h-1.5 rounded-full ${urgent ? 'bg-rose-500' : 'bg-amber-400'} transition-all duration-500" style="width: ${pct}%"></div>
             </div>
-            <div class="flex justify-between text-[10px] text-gray-400 pt-1">
+            <div class="flex justify-between text-[10px] text-gray-400 pt-1 font-mono">
               <span>Заміна: ${s.last.toLocaleString('uk-UA')} км</span>
               <span>План: ${next.toLocaleString('uk-UA')} км</span>
             </div>
@@ -633,43 +696,70 @@
     function switchTab(id) {
       ['tabGarage', 'tabHistory', 'tabReports', 'tabService'].forEach(t => {
         document.getElementById(t).classList.add('hidden');
-        document.getElementById('btn-' + t).className = "py-1 text-gray-400 text-xs flex flex-col items-center";
+        document.getElementById('btn-' + t).className = "py-1 text-gray-400 text-xs flex flex-col items-center tap-press";
       });
-      document.getElementById(id).classList.remove('hidden');
-      document.getElementById('btn-' + id).className = "py-1 text-brandGreen text-xs flex flex-col items-center";
+      const current = document.getElementById(id);
+      current.classList.remove('hidden');
+      current.classList.remove('tab-content');
+      void current.offsetWidth;
+      current.classList.add('tab-content');
+
+      document.getElementById('btn-' + id).className = "py-1 text-brandGreen text-xs flex flex-col items-center tap-press";
       if (id === 'tabReports') initCharts();
     }
 
     function openModal(cat) {
-      document.getElementById('modal').classList.remove('hidden');
+      const overlay = document.getElementById('modalOverlay');
+      const sheet = document.getElementById('modalSheet');
+      overlay.classList.remove('hidden');
+      void overlay.offsetWidth;
+      overlay.classList.remove('opacity-0');
+      overlay.classList.add('opacity-100');
+
+      sheet.classList.remove('closed');
+      sheet.classList.add('open');
+
       const last = records[records.length - 1];
       document.getElementById('inpOdo').value = last ? last.odo : 284510;
       selectModalCategory(cat);
     }
-    function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+
+    function closeModal() {
+      const overlay = document.getElementById('modalOverlay');
+      const sheet = document.getElementById('modalSheet');
+      overlay.classList.remove('opacity-100');
+      overlay.classList.add('opacity-0');
+      sheet.classList.remove('open');
+      sheet.classList.add('closed');
+      setTimeout(() => {
+        overlay.classList.add('hidden');
+      }, 250);
+    }
 
     function selectModalCategory(c) {
       if (c === 'fuel') {
-        document.getElementById('modalBtnFuel').className = "py-2 text-xs font-semibold rounded-lg bg-brandGreen text-black transition";
-        document.getElementById('modalBtnService').className = "py-2 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition";
+        document.getElementById('modalBtnFuel').className = "py-2 text-xs font-bold rounded-xl bg-brandGreen text-black transition";
+        document.getElementById('modalBtnService').className = "py-2 text-xs font-bold rounded-xl text-gray-400 hover:text-white transition";
         document.getElementById('formFuel').classList.remove('hidden');
         document.getElementById('formService').classList.add('hidden');
+        document.getElementById('modalHeading').innerText = "Нова заправка";
       } else {
-        document.getElementById('modalBtnFuel').className = "py-2 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition";
-        document.getElementById('modalBtnService').className = "py-2 text-xs font-semibold rounded-lg bg-blue-500 text-white transition";
+        document.getElementById('modalBtnFuel').className = "py-2 text-xs font-bold rounded-xl text-gray-400 hover:text-white transition";
+        document.getElementById('modalBtnService').className = "py-2 text-xs font-bold rounded-xl bg-blue-500 text-white transition";
         document.getElementById('formFuel').classList.add('hidden');
         document.getElementById('formService').classList.remove('hidden');
+        document.getElementById('modalHeading').innerText = "Новий запис ТО";
       }
     }
 
     function setModalFuel(f) {
       currentModalFuel = f;
       if (f === 'LPG') {
-        document.getElementById('mFuelLpg').className = "py-2 text-xs font-bold rounded-lg bg-brandGreen/20 border border-brandGreen text-brandGreen";
-        document.getElementById('mFuelPetrol').className = "py-2 text-xs font-bold rounded-lg bg-cardSubDark border border-borderDark text-gray-400";
+        document.getElementById('mFuelLpg').className = "py-2.5 text-xs font-bold rounded-xl bg-brandGreen/20 border border-brandGreen text-brandGreen tap-press";
+        document.getElementById('mFuelPetrol').className = "py-2.5 text-xs font-bold rounded-xl bg-cardSubDark border border-borderDark text-gray-400 tap-press";
       } else {
-        document.getElementById('mFuelPetrol').className = "py-2 text-xs font-bold rounded-lg bg-amber-400/20 border border-amber-400 text-amber-400";
-        document.getElementById('mFuelLpg').className = "py-2 text-xs font-bold rounded-lg bg-cardSubDark border border-borderDark text-gray-400";
+        document.getElementById('mFuelPetrol').className = "py-2.5 text-xs font-bold rounded-xl bg-amber-400/20 border border-amber-400 text-amber-400 tap-press";
+        document.getElementById('mFuelLpg').className = "py-2.5 text-xs font-bold rounded-xl bg-cardSubDark border border-borderDark text-gray-400 tap-press";
       }
     }
 
@@ -735,7 +825,7 @@
       chartsInit = true;
       new Chart(document.getElementById('barChart'), {
         type: 'bar',
-        data: { labels: ['Лип', 'Сер', 'Вер'], datasets: [{ data: [0, 6226, 1101], backgroundColor: '#22c55e', borderRadius: 5 }] },
+        data: { labels: ['Лип', 'Сер', 'Вер'], datasets: [{ data: [0, 6226, 1101], backgroundColor: '#22c55e', borderRadius: 6 }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
       });
       new Chart(document.getElementById('lineChart'), {
